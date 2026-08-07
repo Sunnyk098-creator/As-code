@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile Code Editor</title>
+
+    <!-- CodeMirror CSS & Themes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/monokai.min.css">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            text-decoration: none;
+        }
+
+        body, html {
+            background-color: #272822; 
+            color: #f8f8f2;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Header UI */
+        .header {
+            background-color: #1e1f1c; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid #333;
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: #f8f8f2;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .html-logo {
+            height: 22px; /* Set suitable height for image */
+            width: auto;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        .filename {
+            font-size: 15px;
+            color: #a6e22e; 
+        }
+
+        .run-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        /* Top Action Toolbar */
+        .top-toolbar {
+            background-color: #1e1f1c;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            padding: 6px 15px;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        
+        .tool-btn {
+            background-color: #3e3d32;
+            color: #f8f8f2;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tool-btn:active {
+            background-color: #49483e;
+        }
+
+        /* Search & Replace Panel Styling */
+        .search-panel {
+            background-color: #1e1f1c;
+            border-bottom: 1px solid #333;
+            padding: 10px 15px;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .search-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .search-input {
+            background-color: #272822;
+            border: 1px solid #444;
+            color: #f8f8f2;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            flex: 1;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: #a6e22e;
+        }
+
+        .search-btn {
+            background-color: #3e3d32;
+            color: #f8f8f2;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .search-btn:active {
+            background-color: #49483e;
+        }
+
+        .search-close-btn {
+            background: none;
+            border: none;
+            color: #f8f8f2;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+
+        /* Color Preview Marker Box */
+        .color-preview-box {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            margin-right: 5px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid rgba(255,255,255,0.4);
+            cursor: default;
+        }
+
+        /* Editor Section */
+        .editor-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .CodeMirror {
+            flex: 1;
+            height: 100% !important;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+        }
+
+        /* Custom Selection Color */
+        .CodeMirror-selected {
+            background-color: rgba(4, 57, 94, 0.6) !important;
+        }
+        .CodeMirror-focused .CodeMirror-selected {
+            background-color: rgba(4, 57, 94, 0.6) !important;
+        }
+        .cm-searching {
+            background-color: rgba(255, 150, 0, 0.4) !important;
+        }
+
+        /* =========================================
+           Docked Suggestions Bar (Above Toolbar)
+        ========================================= */
+        .suggestion-bar {
+            background-color: #1e1f1c;
+            border-top: 1px solid #333;
+            display: none; /* Auto shown when user types */
+            padding: 8px 10px;
+            gap: 8px;
+            overflow-x: auto;
+            white-space: nowrap;
+            flex-shrink: 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        .suggestion-bar::-webkit-scrollbar {
+            display: none;
+        }
+        .suggestion-item {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            border: 1px solid #444;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            touch-action: manipulation;
+        }
+        .suggestion-item:active {
+            background-color: #04395e;
+            color: white;
+            border-color: #007acc;
+        }
+        .suggestion-icon {
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        /* Shortcut Toolbar */
+        .shortcut-toolbar {
+            background-color: #1e1f1c;
+            border-top: 1px solid #333;
+            display: flex;
+            padding: 8px 10px;
+            gap: 6px;
+            overflow-x: auto;
+            white-space: nowrap;
+            flex-shrink: 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        .shortcut-toolbar::-webkit-scrollbar {
+            display: none;
+        }
+        .shortcut-btn {
+            background-color: #3e3d32;
+            color: #f8f8f2;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            min-width: 38px;
+            text-align: center;
+            touch-action: manipulation;
+        }
+        .shortcut-btn:active {
+            background-color: #49483e;
+        }
+
+        /* Output Overlay */
+        .output-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: white;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+        }
+        .output-header {
+            background-color: #1e1f1c;
+            display: flex; align-items: center; padding: 10px 15px;
+            border-bottom: 1px solid #333;
+        }
+        .output-header .close-btn {
+            background-color: transparent; color: white; border: none;
+            font-size: 16px; cursor: pointer; display: flex; gap: 5px;
+        }
+        iframe {
+            flex: 1; width: 100%; height: 100%; border: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <button class="back-btn">❮</button>
+                <img src="html.png" alt="HTML" class="html-logo">
+                <span class="filename">index.html</span>
+            </div>
+            <button class="run-btn" onclick="openOutput()">▶ Run</button>
+        </div>
+
+        <!-- Top Action Toolbar -->
+        <div class="top-toolbar">
+            <button class="tool-btn" onclick="toggleSearchPanel()">🔍 Search / Replace</button>
+            <button class="tool-btn" onclick="openColorPicker()">🎨 Pick Color</button>
+            <!-- Hidden Native Color Picker Input -->
+            <input type="color" id="nativeColorPicker" style="display: none;" onchange="insertHexColor(this.value)">
+        </div>
+
+        <!-- Search & Replace Panel -->
+        <div class="search-panel" id="search-panel">
+            <div class="search-row">
+                <input type="text" id="search-input" class="search-input" placeholder="Search code..." oninput="doSearch()">
+                <button class="search-btn" onclick="findPrev()">▲</button>
+                <button class="search-btn" onclick="findNext()">▼</button>
+                <button class="search-close-btn" onclick="toggleSearchPanel()">✕</button>
+            </div>
+            <div class="search-row">
+                <input type="text" id="replace-input" class="search-input" placeholder="Replace with...">
+                <button class="search-btn" onclick="doReplace()">Replace</button>
+                <button class="search-btn" onclick="doReplaceAll()">All</button>
+            </div>
+        </div>
+
+        <!-- Editor Section -->
+        <div class="editor-section">
+            <textarea id="code-editor"></textarea>
+        </div>
+
+        <!-- Docked Suggestion Bar (Shows up right above shortcut toolbar) -->
+        <div class="suggestion-bar" id="suggestion-bar"></div>
+
+        <!-- Comprehensive Symbol Toolbar -->
+        <div class="shortcut-toolbar" id="toolbar">
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, 'Tab')">Tab</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '<')">&lt;</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '>')">&gt;</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '/')">/</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '{')">{</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '}')">}</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '[')">[</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, ']')">]</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '(')">(</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, ')')">)</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '=')">=</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '&quot;')">"</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '\'')">'</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, ';')">;</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, ':')">:</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '.')">.</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, ',')">,</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '!')">!</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '?')">?</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '+')">+</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '-')">-</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '*')">*</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '&amp;')">&amp;</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '|')">|</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '%')">%</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '$')">$</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '@')">@</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '_')">_</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '^')">^</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '\\')">\</button>
+            <button class="shortcut-btn" onmousedown="insertSymbol(event, '#')">#</button>
+        </div>
+    </div>
+
+    <!-- Output Screen -->
+    <div class="output-overlay" id="outputScreen">
+        <div class="output-header">
+            <button class="close-btn" onclick="closeOutput()">❮ Back</button>
+        </div>
+        <iframe id="output-frame"></iframe>
+    </div>
+
+    <!-- CodeMirror JS Core & Addons -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closetag.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/search/searchcursor.min.js"></script>
+
+    <script>
+        // High-Quality Global Suggestion lists
+        const cssPropertiesList = [
+            "background", "background-color", "background-image", "background-position", 
+            "background-size", "background-repeat", "border", "border-radius", "border-color", 
+            "border-width", "border-style", "color", "display", "flex", "flex-direction", 
+            "font-family", "font-size", "font-weight", "height", "width", "margin", "margin-top", 
+            "margin-bottom", "margin-left", "margin-right", "padding", "padding-top", "padding-bottom", 
+            "padding-left", "padding-right", "position", "top", "bottom", "left", "right", 
+            "z-index", "opacity", "overflow", "overflow-x", "overflow-y", "text-align", 
+            "text-decoration", "text-transform", "align-items", "justify-content"
+        ];
+
+        const htmlKeywordsList = [
+            "div", "span", "p", "a", "h1", "h2", "h3", "h4", "h5", "h6", 
+            "button", "input", "form", "ul", "li", "ol", "img", "iframe", "style", "script", "link"
+        ];
+
+        // Initialize CodeMirror Editor
+        var editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
+            mode: "htmlmixed",
+            theme: "monokai", 
+            lineNumbers: true,
+            indentUnit: 4,
+            matchBrackets: true,
+            autoCloseTags: true, 
+            viewportMargin: Infinity,
+            inputStyle: "contenteditable",
+            extraKeys: {
+                "Enter": function(cm) {
+                    var cursor = cm.getCursor();
+                    var line = cm.getLine(cursor.line);
+                    var beforeCursor = line.substring(0, cursor.ch);
+
+                    // 1. ! + Enter -> Boilerplate
+                    if (beforeCursor.trim() === "!") {
+                        let boilerplate = `<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Document</title>\n</head>\n<body>\n    \n</body>\n</html>`;
+                        cm.replaceRange(boilerplate, {line: cursor.line, ch: 0}, cursor);
+                        cm.setCursor({line: cursor.line + 8, ch: 4});
+                        return;
+                    }
+
+                    // 2. Custom magic expansions
+                    var match = beforeCursor.match(/([a-zA-Z0-9]+)$/);
+                    if (match) {
+                        var tag = match[1].toLowerCase();
+                        var start = {line: cursor.line, ch: cursor.ch - tag.length};
+                        var end = cursor;
+
+                        if (tag === 'img') {
+                            cm.replaceRange('<img src="favcon.png" alt="logo">', start, end);
+                            cm.setCursor({line: cursor.line, ch: start.ch + 10});
+                            return;
+                        }
+                        
+                        if (tag === 'input') {
+                            cm.replaceRange('<input type="text" placeholder="">', start, end);
+                            cm.setCursor({line: cursor.line, ch: start.ch + 27});
+                            return;
+                        }
+
+                        var validTags = ['div', 'span', 'p', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'button', 'form', 'ul', 'li', 'ol', 'table', 'tr', 'td', 'th', 'script', 'style', 'link', 'meta', 'head', 'body', 'html', 'nav', 'header', 'footer', 'main', 'b', 'strong', 'i', 'br', 'hr'];
+                        if (validTags.includes(tag)) {
+                            var selfClosing = ['link', 'meta', 'br', 'hr'];
+                            if (selfClosing.includes(tag)) {
+                                cm.replaceRange(`<${tag}>`, start, end);
+                                cm.setCursor({line: cursor.line, ch: start.ch + tag.length + 2});
+                            } else {
+                                cm.replaceRange(`<${tag}></${tag}>`, start, end);
+                                cm.setCursor({line: cursor.line, ch: start.ch + tag.length + 2});
+                            }
+                            return;
+                        }
+                    }
+
+                    return CodeMirror.Pass; 
+                }
+            }
+        });
+
+        // =========================================
+        // Docked Autocomplete Suggestion Logic
+        // =========================================
+        function updateDockedSuggestions(cm) {
+            var cur = cm.getCursor();
+            var token = cm.getTokenAt(cur);
+            
+            var query = "";
+            if (token.string.trim() !== "" && /^[a-zA-Z0-9_\-]+$/.test(token.string)) {
+                query = token.string.toLowerCase();
+            }
+
+            var bar = document.getElementById("suggestion-bar");
+            if (!query) {
+                bar.style.display = "none";
+                bar.innerHTML = "";
+                return;
+            }
+
+            // Find matching css properties or html tags
+            var matches = [];
+            cssPropertiesList.forEach(function(prop) {
+                if (prop.startsWith(query)) {
+                    matches.push({ text: prop, type: "css" });
+                }
+            });
+            htmlKeywordsList.forEach(function(tag) {
+                if (tag.startsWith(query)) {
+                    matches.push({ text: tag, type: "html" });
+                }
+            });
+
+            if (matches.length === 0) {
+                bar.style.display = "none";
+                bar.innerHTML = "";
+                return;
+            }
+
+            // Create buttons in docked bar
+            bar.innerHTML = "";
+            bar.style.display = "flex";
+
+            matches.forEach(function(match) {
+                var btn = document.createElement("button");
+                btn.className = "suggestion-item";
+                
+                var icon = document.createElement("span");
+                icon.className = "suggestion-icon";
+                if (match.type === "html") {
+                    icon.innerHTML = "&lt;&gt;";
+                    icon.style.color = "#4fa8ff";
+                } else {
+                    icon.innerHTML = "⬢";
+                    icon.style.color = "#d28445";
+                }
+
+                var label = document.createElement("span");
+                label.innerText = match.text;
+
+                btn.appendChild(icon);
+                btn.appendChild(label);
+
+                // When suggestion is touched, replace word safely
+                btn.onmousedown = function(e) {
+                    e.preventDefault();
+                    var from = CodeMirror.Pos(cur.line, token.start);
+                    var to = CodeMirror.Pos(cur.line, token.end);
+                    cm.replaceRange(match.text, from, to);
+                    
+                    // Return focus to editor and clear suggestions
+                    setTimeout(function() {
+                        cm.focus();
+                        bar.style.display = "none";
+                        bar.innerHTML = "";
+                    }, 50);
+                };
+
+                bar.appendChild(btn);
+            });
+        }
+
+        // Listen for cursor changes/typing to update suggestion bar
+        editor.on("cursorActivity", function(cm) {
+            updateDockedSuggestions(cm);
+        });
+
+        // =========================================
+        // CSS Color Preview Feature
+        // =========================================
+        let colorWidgets = [];
+        function updateColorPreviews(cm) {
+            colorWidgets.forEach(widget => widget.clear());
+            colorWidgets = [];
+
+            const hexRegex = /#([0-9a-fA-F]{3,8})\b/g;
+
+            cm.eachLine(lineHandle => {
+                const lineNum = cm.getLineNumber(lineHandle);
+                const lineText = lineHandle.text;
+                let match;
+
+                while ((match = hexRegex.exec(lineText)) !== null) {
+                    const matchedStr = match[0];
+                    const startCh = match.index;
+
+                    const marker = document.createElement("span");
+                    marker.className = "color-preview-box";
+                    marker.style.backgroundColor = matchedStr;
+
+                    const widget = cm.setBookmark({line: lineNum, ch: startCh}, {
+                        widget: marker,
+                        insertLeft: true
+                    });
+                    colorWidgets.push(widget);
+                }
+            });
+        }
+
+        let colorTimeout;
+        editor.on("change", function(cm) {
+            clearTimeout(colorTimeout);
+            colorTimeout = setTimeout(() => updateColorPreviews(cm), 250);
+        });
+
+        // =========================================
+        // Direct Color Picker Functionality
+        // =========================================
+        function openColorPicker() {
+            document.getElementById("nativeColorPicker").click();
+        }
+
+        function insertHexColor(color) {
+            if (!color) return;
+            var doc = editor.getDoc();
+            var cursor = doc.getCursor();
+            doc.replaceRange(color, cursor);
+            editor.focus();
+        }
+
+        // =========================================
+        // Search & Replace Engine
+        // =========================================
+        let searchCursor = null;
+        let lastQuery = "";
+
+        function toggleSearchPanel() {
+            var panel = document.getElementById("search-panel");
+            if (panel.style.display === "flex") {
+                panel.style.display = "none";
+                searchCursor = null;
+                editor.setSelection(editor.getCursor()); 
+            } else {
+                panel.style.display = "flex";
+                document.getElementById("search-input").focus();
+            }
+        }
+
+        function doSearch() {
+            let query = document.getElementById("search-input").value;
+            if (!query || query.trim() === "") {
+                searchCursor = null;
+                editor.setSelection(editor.getCursor());
+                return;
+            }
+            lastQuery = query;
+            searchCursor = editor.getSearchCursor(query);
+            if (searchCursor.findNext()) {
+                editor.setSelection(searchCursor.from(), searchCursor.to());
+            }
+        }
+
+        function findNext() {
+            let query = document.getElementById("search-input").value;
+            if (!query || query.trim() === "") return;
+            if (!searchCursor || lastQuery !== query) {
+                searchCursor = editor.getSearchCursor(query, editor.getCursor("to"));
+            }
+            if (searchCursor.findNext()) {
+                editor.setSelection(searchCursor.from(), searchCursor.to());
+                editor.scrollIntoView({from: searchCursor.from(), to: searchCursor.to()}, 150);
+            } else {
+                searchCursor = editor.getSearchCursor(query);
+                if (searchCursor.findNext()) {
+                    editor.setSelection(searchCursor.from(), searchCursor.to());
+                    editor.scrollIntoView({from: searchCursor.from(), to: searchCursor.to()}, 150);
+                }
+            }
+        }
+
+        function findPrev() {
+            let query = document.getElementById("search-input").value;
+            if (!query || query.trim() === "") return;
+            if (!searchCursor || lastQuery !== query) {
+                searchCursor = editor.getSearchCursor(query, editor.getCursor("from"));
+            }
+            if (searchCursor.findPrevious()) {
+                editor.setSelection(searchCursor.from(), searchCursor.to());
+                editor.scrollIntoView({from: searchCursor.from(), to: searchCursor.to()}, 150);
+            } else {
+                searchCursor = editor.getSearchCursor(query, {line: editor.lineCount() - 1});
+                if (searchCursor.findPrevious()) {
+                    editor.setSelection(searchCursor.from(), searchCursor.to());
+                    editor.scrollIntoView({from: searchCursor.from(), to: searchCursor.to()}, 150);
+                }
+            }
+        }
+
+        function doReplace() {
+            let query = document.getElementById("search-input").value;
+            let replaceVal = document.getElementById("replace-input").value;
+            if (!query) return;
+
+            let selection = editor.getSelection();
+            if (selection.toLowerCase() === query.toLowerCase()) {
+                editor.replaceSelection(replaceVal);
+                findNext();
+            } else {
+                findNext();
+            }
+        }
+
+        function doReplaceAll() {
+            let query = document.getElementById("search-input").value;
+            let replaceVal = document.getElementById("replace-input").value;
+            if (!query) return;
+
+            let cursor = editor.getSearchCursor(query);
+            while (cursor.findNext()) {
+                cursor.replace(replaceVal);
+            }
+        }
+
+        // Symbol Toolbar logic
+        function insertSymbol(event, symbol) {
+            event.preventDefault();
+            var doc = editor.getDoc();
+            var cursor = doc.getCursor();
+            if(symbol === 'Tab') {
+                doc.replaceRange("    ", cursor);
+            } else {
+                doc.replaceRange(symbol, cursor);
+            }
+            editor.focus();
+        }
+
+        // Output Functions
+        function openOutput() {
+            var htmlCode = editor.getValue();
+            var outputOverlay = document.getElementById('outputScreen');
+            var oldFrame = document.getElementById('output-frame');
+            
+            // Recreating the iframe completely clears variables/state/history from previous run clicks
+            var newFrame = document.createElement('iframe');
+            newFrame.id = 'output-frame';
+            oldFrame.parentNode.replaceChild(newFrame, oldFrame);
+            
+            outputOverlay.style.display = 'flex';
+            var doc = newFrame.contentDocument || newFrame.contentWindow.document;
+            doc.open(); 
+            doc.write(htmlCode); 
+            doc.close();
+        }
+
+        function closeOutput() {
+            document.getElementById('outputScreen').style.display = 'none';
+            // Reset iframe source on close to stop running background media/scripts
+            var outputFrame = document.getElementById('output-frame');
+            if(outputFrame) outputFrame.src = 'about:blank';
+        }
+
+        // Default set to totally empty box (No code preloaded)
+        editor.setValue("");
+    </script>
+</body>
+</html>
