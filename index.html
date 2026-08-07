@@ -30,6 +30,8 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
+            width: 100vw;
+            position: relative;
         }
 
         /* Header UI */
@@ -41,6 +43,7 @@
             padding: 10px 15px;
             border-bottom: 1px solid #333;
             flex-shrink: 0;
+            z-index: 10;
         }
 
         .header-left {
@@ -49,16 +52,17 @@
             gap: 12px;
         }
 
-        .back-btn {
+        .menu-btn {
             background: none;
             border: none;
             color: #f8f8f2;
-            font-size: 20px;
+            font-size: 22px;
             cursor: pointer;
+            padding: 0 5px;
         }
 
-        .html-logo {
-            height: 22px; /* Set suitable height for image */
+        .file-logo {
+            height: 22px;
             width: auto;
             object-fit: contain;
             border-radius: 4px;
@@ -67,6 +71,7 @@
         .filename {
             font-size: 15px;
             color: #a6e22e; 
+            font-weight: bold;
         }
 
         .run-btn {
@@ -77,6 +82,138 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
+        }
+
+        /* Sidebar / Drawer File Manager */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 2000;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100%;
+            background-color: #1e1f1c;
+            border-right: 1px solid #333;
+            z-index: 2001;
+            transition: left 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .sidebar-title {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #a6e22e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .create-file-btns {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 15px;
+        }
+
+        .create-btn {
+            background-color: #3e3d32;
+            color: #f8f8f2;
+            border: 1px solid #555;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .file-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background-color: #272822;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .file-item.active {
+            border-color: #a6e22e;
+            background-color: #3e3d32;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-item-icon {
+            height: 18px;
+            width: auto;
+        }
+
+        .file-item-name {
+            font-size: 14px;
+            color: #f8f8f2;
+        }
+
+        .file-more-btn {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+
+        /* Context Menu for File Actions */
+        .file-menu-popup {
+            position: fixed;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 4px;
+            display: none;
+            flex-direction: column;
+            z-index: 3000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .file-menu-popup button {
+            background: none;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            text-align: left;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .file-menu-popup button:hover {
+            background-color: #04395e;
         }
 
         /* Top Action Toolbar */
@@ -181,6 +318,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            position: relative;
         }
 
         .CodeMirror {
@@ -202,18 +340,19 @@
         }
 
         /* =========================================
-           Docked Suggestions Bar (Above Toolbar)
+           Docked Suggestions Bar
         ========================================= */
         .suggestion-bar {
             background-color: #1e1f1c;
             border-top: 1px solid #333;
-            display: none; /* Auto shown when user types */
+            display: none;
             padding: 8px 10px;
             gap: 8px;
             overflow-x: auto;
             white-space: nowrap;
             flex-shrink: 0;
             -webkit-overflow-scrolling: touch;
+            z-index: 100;
         }
         .suggestion-bar::-webkit-scrollbar {
             display: none;
@@ -252,6 +391,7 @@
             white-space: nowrap;
             flex-shrink: 0;
             -webkit-overflow-scrolling: touch;
+            z-index: 100;
         }
         .shortcut-toolbar::-webkit-scrollbar {
             display: none;
@@ -277,7 +417,7 @@
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background-color: white;
-            z-index: 1000;
+            z-index: 4000;
             display: none;
             flex-direction: column;
         }
@@ -298,12 +438,36 @@
 <body>
 
     <div class="main-container">
+        <!-- Sidebar Drawer Overlay -->
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <!-- Sidebar File Manager -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-title">
+                <span>Files Manager</span>
+                <span style="cursor:pointer;" onclick="toggleSidebar()">✕</span>
+            </div>
+            <div class="create-file-btns">
+                <button class="create-btn" onclick="createNewFile('html')">+ .html</button>
+                <button class="create-btn" onclick="createNewFile('css')">+ .css</button>
+                <button class="create-btn" onclick="createNewFile('js')">+ .js</button>
+            </div>
+            <div class="file-list" id="file-list"></div>
+        </div>
+
+        <!-- File Action Menu -->
+        <div class="file-menu-popup" id="fileMenuPopup">
+            <button onclick="actionRenameFile()">Rename</button>
+            <button onclick="actionDuplicateFile()">Duplicate</button>
+            <button onclick="actionDeleteFile()" style="color:#ff6b6b;">Delete</button>
+        </div>
+
         <!-- Header -->
         <div class="header">
             <div class="header-left">
-                <button class="back-btn">❮</button>
-                <img src="html.png" alt="HTML" class="html-logo">
-                <span class="filename">index.html</span>
+                <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+                <img id="header-file-icon" src="html.png" alt="File" class="file-logo">
+                <span class="filename" id="header-filename">index.html</span>
             </div>
             <button class="run-btn" onclick="openOutput()">▶ Run</button>
         </div>
@@ -336,7 +500,7 @@
             <textarea id="code-editor"></textarea>
         </div>
 
-        <!-- Docked Suggestion Bar (Shows up right above shortcut toolbar) -->
+        <!-- Docked Suggestion Bar -->
         <div class="suggestion-bar" id="suggestion-bar"></div>
 
         <!-- Comprehensive Symbol Toolbar -->
@@ -393,7 +557,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/search/searchcursor.min.js"></script>
 
     <script>
-        // High-Quality Global Suggestion lists
+        // Global Files State
+        let filesList = [
+            { name: "index.html", content: "" },
+            { name: "style.css", content: "" },
+            { name: "script.js", content: "" }
+        ];
+        let currentFileName = "index.html";
+        let targetMenuFile = "";
+
+        // Global Suggestion lists
         const cssPropertiesList = [
             "background", "background-color", "background-image", "background-position", 
             "background-size", "background-repeat", "border", "border-radius", "border-color", 
@@ -409,6 +582,20 @@
             "div", "span", "p", "a", "h1", "h2", "h3", "h4", "h5", "h6", 
             "button", "input", "form", "ul", "li", "ol", "img", "iframe", "style", "script", "link"
         ];
+
+        // Helper: Get Icon Image Source based on extension
+        function getIconForFile(filename) {
+            if (filename.endsWith('.css')) return 'css.png';
+            if (filename.endsWith('.js')) return 'js.png';
+            return 'html.png';
+        }
+
+        // Helper: Get CodeMirror mode by filename
+        function getModeForFile(filename) {
+            if (filename.endsWith('.css')) return 'css';
+            if (filename.endsWith('.js')) return 'javascript';
+            return 'htmlmixed';
+        }
 
         // Initialize CodeMirror Editor
         var editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
@@ -434,7 +621,7 @@
                         return;
                     }
 
-                    // 2. Custom magic expansions
+                    // 2. Custom tag expansions (e.g. img, p, div)
                     var match = beforeCursor.match(/([a-zA-Z0-9]+)$/);
                     if (match) {
                         var tag = match[1].toLowerCase();
@@ -442,7 +629,7 @@
                         var end = cursor;
 
                         if (tag === 'img') {
-                            cm.replaceRange('<img src="favcon.png" alt="logo">', start, end);
+                            cm.replaceRange('<img src="" alt="">', start, end);
                             cm.setCursor({line: cursor.line, ch: start.ch + 10});
                             return;
                         }
@@ -472,6 +659,157 @@
             }
         });
 
+        // Save active editor content to state
+        function saveCurrentFileContent() {
+            let activeFile = filesList.find(f => f.name === currentFileName);
+            if (activeFile) {
+                activeFile.content = editor.getValue();
+            }
+        }
+
+        // Switch to selected file
+        function switchFile(filename) {
+            saveCurrentFileContent();
+            currentFileName = filename;
+            let activeFile = filesList.find(f => f.name === currentFileName);
+            if (!activeFile) return;
+
+            document.getElementById('header-filename').innerText = activeFile.name;
+            document.getElementById('header-file-icon').src = getIconForFile(activeFile.name);
+
+            editor.setOption("mode", getModeForFile(activeFile.name));
+            editor.setValue(activeFile.content);
+            renderFileList();
+            
+            // Close sidebar
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('sidebar-overlay').style.display = 'none';
+        }
+
+        // Render File List in Drawer
+        function renderFileList() {
+            const listContainer = document.getElementById('file-list');
+            listContainer.innerHTML = '';
+
+            filesList.forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'file-item' + (file.name === currentFileName ? ' active' : '');
+                item.onclick = function() { switchFile(file.name); };
+
+                const info = document.createElement('div');
+                info.className = 'file-info';
+
+                const icon = document.createElement('img');
+                icon.className = 'file-item-icon';
+                icon.src = getIconForFile(file.name);
+
+                const name = document.createElement('span');
+                name.className = 'file-item-name';
+                name.innerText = file.name;
+
+                info.appendChild(icon);
+                info.appendChild(name);
+
+                const moreBtn = document.createElement('button');
+                moreBtn.className = 'file-more-btn';
+                moreBtn.innerHTML = '⋮';
+                moreBtn.onclick = function(e) {
+                    e.stopPropagation();
+                    openFileMenu(e, file.name);
+                };
+
+                item.appendChild(info);
+                item.appendChild(moreBtn);
+                listContainer.appendChild(item);
+            });
+        }
+
+        // File Menu Operations
+        function openFileMenu(e, filename) {
+            targetMenuFile = filename;
+            const popup = document.getElementById('fileMenuPopup');
+            popup.style.display = 'flex';
+            popup.style.left = (e.clientX - 100) + 'px';
+            popup.style.top = e.clientY + 'px';
+        }
+
+        document.addEventListener('click', function() {
+            document.getElementById('fileMenuPopup').style.display = 'none';
+        });
+
+        function createNewFile(ext) {
+            let inputName = prompt("Enter file name:", "newfile." + ext);
+            if (!inputName) return;
+            if (!inputName.endsWith('.' + ext)) {
+                inputName += '.' + ext;
+            }
+            if (filesList.some(f => f.name === inputName)) {
+                alert("File with this name already exists!");
+                return;
+            }
+            filesList.push({ name: inputName, content: "" });
+            switchFile(inputName);
+        }
+
+        function actionRenameFile() {
+            if (!targetMenuFile) return;
+            let newName = prompt("Rename file:", targetMenuFile);
+            if (!newName || newName === targetMenuFile) return;
+            if (filesList.some(f => f.name === newName)) {
+                alert("File with this name already exists!");
+                return;
+            }
+            let fileObj = filesList.find(f => f.name === targetMenuFile);
+            if (fileObj) {
+                fileObj.name = newName;
+                if (currentFileName === targetMenuFile) {
+                    currentFileName = newName;
+                    document.getElementById('header-filename').innerText = newName;
+                    document.getElementById('header-file-icon').src = getIconForFile(newName);
+                    editor.setOption("mode", getModeForFile(newName));
+                }
+                renderFileList();
+            }
+        }
+
+        function actionDuplicateFile() {
+            if (!targetMenuFile) return;
+            let fileObj = filesList.find(f => f.name === targetMenuFile);
+            if (fileObj) {
+                let dupName = "copy_" + fileObj.name;
+                filesList.push({ name: dupName, content: fileObj.content });
+                renderFileList();
+            }
+        }
+
+        function actionDeleteFile() {
+            if (!targetMenuFile) return;
+            if (filesList.length <= 1) {
+                alert("Cannot delete the only remaining file!");
+                return;
+            }
+            if (confirm("Delete " + targetMenuFile + "?")) {
+                filesList = filesList.filter(f => f.name !== targetMenuFile);
+                if (currentFileName === targetMenuFile) {
+                    switchFile(filesList[0].name);
+                } else {
+                    renderFileList();
+                }
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+                overlay.style.display = 'none';
+            } else {
+                sidebar.classList.add('active');
+                overlay.style.display = 'block';
+            }
+        }
+
         // =========================================
         // Docked Autocomplete Suggestion Logic
         // =========================================
@@ -491,13 +829,14 @@
                 return;
             }
 
-            // Find matching css properties or html tags
             var matches = [];
+            // Match CSS properties
             cssPropertiesList.forEach(function(prop) {
                 if (prop.startsWith(query)) {
                     matches.push({ text: prop, type: "css" });
                 }
             });
+            // Match HTML tags
             htmlKeywordsList.forEach(function(tag) {
                 if (tag.startsWith(query)) {
                     matches.push({ text: tag, type: "html" });
@@ -510,7 +849,6 @@
                 return;
             }
 
-            // Create buttons in docked bar
             bar.innerHTML = "";
             bar.style.display = "flex";
 
@@ -534,14 +872,28 @@
                 btn.appendChild(icon);
                 btn.appendChild(label);
 
-                // When suggestion is touched, replace word safely
                 btn.onmousedown = function(e) {
                     e.preventDefault();
                     var from = CodeMirror.Pos(cur.line, token.start);
                     var to = CodeMirror.Pos(cur.line, token.end);
-                    cm.replaceRange(match.text, from, to);
+
+                    if (match.type === "css") {
+                        // Format CSS properly: background-color: ;
+                        cm.replaceRange(match.text + ": ;", from, to);
+                        cm.setCursor({line: cur.line, ch: from.ch + match.text.length + 2});
+                    } else {
+                        if (match.text === 'img') {
+                            cm.replaceRange('<img src="" alt="">', from, to);
+                            cm.setCursor({line: cur.line, ch: from.ch + 10});
+                        } else if (match.text === 'input') {
+                            cm.replaceRange('<input type="text" placeholder="">', from, to);
+                            cm.setCursor({line: cur.line, ch: from.ch + 27});
+                        } else {
+                            cm.replaceRange(`<${match.text}></${match.text}>`, from, to);
+                            cm.setCursor({line: cur.line, ch: from.ch + match.text.length + 2});
+                        }
+                    }
                     
-                    // Return focus to editor and clear suggestions
                     setTimeout(function() {
                         cm.focus();
                         bar.style.display = "none";
@@ -553,7 +905,6 @@
             });
         }
 
-        // Listen for cursor changes/typing to update suggestion bar
         editor.on("cursorActivity", function(cm) {
             updateDockedSuggestions(cm);
         });
@@ -719,11 +1070,22 @@
 
         // Output Functions
         function openOutput() {
-            var htmlCode = editor.getValue();
+            saveCurrentFileContent();
+            var htmlObj = filesList.find(f => f.name.endsWith('.html'));
+            var cssObj = filesList.find(f => f.name.endsWith('.css'));
+            var jsObj = filesList.find(f => f.name.endsWith('.js'));
+
+            var combinedCode = (htmlObj ? htmlObj.content : editor.getValue());
+            if (cssObj && cssObj.content.trim() !== "") {
+                combinedCode += `<style>${cssObj.content}</style>`;
+            }
+            if (jsObj && jsObj.content.trim() !== "") {
+                combinedCode += `<script>${jsObj.content}<\/script>`;
+            }
+
             var outputOverlay = document.getElementById('outputScreen');
             var oldFrame = document.getElementById('output-frame');
             
-            // Recreating the iframe completely clears variables/state/history from previous run clicks
             var newFrame = document.createElement('iframe');
             newFrame.id = 'output-frame';
             oldFrame.parentNode.replaceChild(newFrame, oldFrame);
@@ -731,18 +1093,18 @@
             outputOverlay.style.display = 'flex';
             var doc = newFrame.contentDocument || newFrame.contentWindow.document;
             doc.open(); 
-            doc.write(htmlCode); 
+            doc.write(combinedCode); 
             doc.close();
         }
 
         function closeOutput() {
             document.getElementById('outputScreen').style.display = 'none';
-            // Reset iframe source on close to stop running background media/scripts
             var outputFrame = document.getElementById('output-frame');
             if(outputFrame) outputFrame.src = 'about:blank';
         }
 
-        // Default set to totally empty box (No code preloaded)
+        // Initial Load
+        renderFileList();
         editor.setValue("");
     </script>
 </body>
