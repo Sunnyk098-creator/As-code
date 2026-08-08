@@ -16,6 +16,7 @@
             padding: 0;
             font-family: Arial, Helvetica, sans-serif;
             text-decoration: none;
+            -webkit-touch-callout: none; /* Disable browser default text menu popups */
         }
 
         body, html {
@@ -351,11 +352,10 @@
             height: 100% !important;
             font-family: 'Courier New', Courier, monospace;
             font-size: 16px;
+            -webkit-touch-callout: none !important; /* Disables native selection toolbar on iOS/Android */
         }
 
-        /* =========================================
-           Custom CodeMirror VS Code Dark Theme 
-        ========================================= */
+        /* Custom CodeMirror Theme */
         .cm-s-custom-dark.CodeMirror { background: #1E1E1E; color: #D4D4D4; }
         .cm-s-custom-dark .CodeMirror-gutters { background: #1E1E1E; border-right: 1px solid #333; }
         .cm-s-custom-dark .CodeMirror-linenumber { color: #858585; }
@@ -383,9 +383,7 @@
         
         .cm-searching { background-color: rgba(255, 150, 0, 0.4) !important; }
 
-        /* =========================================
-           Native AutoComplete / IntelliSense Styling
-        ========================================= */
+        /* AutoComplete / IntelliSense Styling */
         .CodeMirror-hints {
             position: absolute;
             z-index: 6000;
@@ -643,6 +641,10 @@
             <button onmousedown="event.preventDefault(); menuComment()" title="Convert to Comment">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/></svg>
             </button>
+            <!-- NEW: Select Line Button -->
+            <button onmousedown="event.preventDefault(); menuSelectLine()" title="Select Line">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><path d="M3 6h18M3 18h18"/></svg>
+            </button>
         </div>
 
         <!-- Comprehensive Symbol Toolbar -->
@@ -708,9 +710,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/anyword-hint.min.js"></script>
 
     <script>
-        // =========================================
-        // Keyboard Overlap Fix (For Vercel/Mobile Deploy)
-        // =========================================
+        // Visual Viewport Adjustments for Mobile Keyboards
         if (window.visualViewport) {
             const adjustHeight = () => {
                 document.querySelector('.main-container').style.height = window.visualViewport.height + 'px';
@@ -741,9 +741,7 @@
             return 'htmlmixed';
         }
 
-        // =========================================
-        // Context-Aware VS Code IntelliSense Engine
-        // =========================================
+        // Context-Aware VS Code IntelliSense Engine Data
         const HTML_TAG_LIST = [
             { name: "a", selfClosing: false },
             { name: "article", selfClosing: false },
@@ -879,124 +877,27 @@
             };
         }
 
+        // Updated Smart Hints Logic based on File Type
         function getSmartHints(cm, options) {
             var cursor = cm.getCursor();
             var line = cm.getLine(cursor.line);
             var lineTillCursor = line.slice(0, cursor.ch);
             var token = cm.getTokenAt(cursor);
-            var inner = CodeMirror.innerMode(cm.getMode(), token.state);
-            var modeName = inner.mode.name;
 
             var list = [];
             var from = CodeMirror.Pos(cursor.line, token.start);
             var to = CodeMirror.Pos(cursor.line, token.end);
 
-            if (modeName === "xml" || modeName === "htmlmixed") {
-                var lastOpenAngle = lineTillCursor.lastIndexOf("<");
-                var lastCloseAngle = lineTillCursor.lastIndexOf(">");
+            var isCSS = currentFileName.endsWith('.css');
+            var isJS = currentFileName.endsWith('.js');
+            var isHTML = currentFileName.endsWith('.html');
 
-                if (lastOpenAngle > lastCloseAngle) {
-                    // Inside an HTML tag: < ... >
-                    var tagContent = lineTillCursor.substring(lastOpenAngle + 1);
-                    
-                    // Check Attribute Value Context
-                    var quoteMatch = tagContent.match(/([a-zA-Z0-9\-_]+)\s*=\s*(["'])([^"']*)$/);
-                    if (quoteMatch) {
-                        var attrName = quoteMatch[1].toLowerCase();
-                        var valQuery = quoteMatch[3].toLowerCase();
-                        from = CodeMirror.Pos(cursor.line, cursor.ch - valQuery.length);
-
-                        var values = CSS_VALUES_MAP[attrName] || ["text", "password", "email", "number", "checkbox", "radio", "submit", "button", "file", "hidden", "_blank", "_self", "stylesheet", "module", "utf-8"];
-                        values.forEach(function(val) {
-                            if (!valQuery || val.toLowerCase().startsWith(valQuery)) {
-                                list.push(makeHintItem(val, val, '"', 'val', 'value', function(cm, data, cur) {
-                                    cm.replaceRange(cur.text, data.from, data.to);
-                                }));
-                            }
-                        });
-                    } else if (tagContent.indexOf(" ") !== -1) {
-                        // Attribute Context e.g. <div class="foo" h or <a h
-                        var attrMatch = tagContent.match(/([a-zA-Z0-9\-_]*)$/);
-                        var attrQuery = attrMatch ? attrMatch[1].toLowerCase() : "";
-                        from = CodeMirror.Pos(cursor.line, cursor.ch - attrQuery.length);
-
-                        HTML_ATTRS_LIST.forEach(function(attr) {
-                            if (!attrQuery || attr.toLowerCase().startsWith(attrQuery)) {
-                                var isBool = BOOLEAN_ATTRS_SET.has(attr);
-                                var disp = isBool ? attr : attr + '=""';
-                                list.push(makeHintItem(attr, disp, '@', 'attr', 'attribute', function(cm, data, cur) {
-                                    var insertStr = isBool ? attr : attr + '=""';
-                                    cm.replaceRange(insertStr, data.from, data.to);
-                                    if (!isBool) {
-                                        // Place cursor inside quotes: attr="|"
-                                        cm.setCursor({ line: data.from.line, ch: data.from.ch + attr.length + 2 });
-                                    }
-                                }));
-                            }
-                        });
-                    } else {
-                        // Tag Name Context inside angle bracket e.g. <h
-                        var tagQuery = tagContent.toLowerCase();
-                        from = CodeMirror.Pos(cursor.line, lastOpenAngle);
-
-                        HTML_TAG_LIST.forEach(function(t) {
-                            if (!tagQuery || t.name.toLowerCase().startsWith(tagQuery)) {
-                                var openTag = "<" + t.name + ">";
-                                var closeTag = "</" + t.name + ">";
-                                var disp = t.selfClosing ? "<" + t.name + ">" : openTag + closeTag;
-
-                                list.push(makeHintItem(t.name, disp, '<>', 'tag', 'tag', function(cm, data, cur) {
-                                    if (t.selfClosing) {
-                                        var str = t.snippet || ("<" + t.name + ">");
-                                        cm.replaceRange(str, data.from, data.to);
-                                        cm.setCursor({ line: data.from.line, ch: data.from.ch + str.length });
-                                    } else {
-                                        var openT = "<" + t.name + ">";
-                                        var fullT = openT + "</" + t.name + ">";
-                                        cm.replaceRange(fullT, data.from, data.to);
-                                        // Place cursor inside between opening and closing tags: <h1>|</h1>
-                                        cm.setCursor({ line: data.from.line, ch: data.from.ch + openT.length });
-                                    }
-                                }));
-                            }
-                        });
-                    }
-                } else {
-                    // Outside angle bracket - Plain word tag completion (e.g. typing "h1" or "h" in body)
-                    var wordMatch = lineTillCursor.match(/([a-zA-Z0-9\-_]+)$/);
-                    if (wordMatch) {
-                        var query = wordMatch[1].toLowerCase();
-                        from = CodeMirror.Pos(cursor.line, cursor.ch - query.length);
-
-                        HTML_TAG_LIST.forEach(function(t) {
-                            if (t.name.toLowerCase().startsWith(query)) {
-                                var openTag = "<" + t.name + ">";
-                                var closeTag = "</" + t.name + ">";
-                                var disp = t.selfClosing ? "<" + t.name + ">" : openTag + closeTag;
-
-                                list.push(makeHintItem(t.name, disp, '<>', 'tag', 'tag', function(cm, data, cur) {
-                                    if (t.selfClosing) {
-                                        var str = t.snippet || ("<" + t.name + ">");
-                                        cm.replaceRange(str, data.from, data.to);
-                                        cm.setCursor({ line: data.from.line, ch: data.from.ch + str.length });
-                                    } else {
-                                        var openT = "<" + t.name + ">";
-                                        var fullT = openT + "</" + t.name + ">";
-                                        cm.replaceRange(fullT, data.from, data.to);
-                                        // Place cursor inside between opening and closing tags: <h1>|</h1>
-                                        cm.setCursor({ line: data.from.line, ch: data.from.ch + openT.length });
-                                    }
-                                }));
-                            }
-                        });
-                    }
-                }
-            } else if (modeName === "css") {
+            if (isCSS) {
+                // CSS FILE: Only CSS Suggestions
                 var colonIdx = lineTillCursor.lastIndexOf(":");
                 var semiIdx = lineTillCursor.lastIndexOf(";");
                 
                 if (colonIdx > semiIdx && colonIdx !== -1) {
-                    // CSS Property Value Context
                     var valMatch = lineTillCursor.substring(colonIdx + 1).match(/([a-zA-Z0-9\-_]*)$/);
                     var cssValQuery = valMatch ? valMatch[1].toLowerCase() : "";
                     from = CodeMirror.Pos(cursor.line, cursor.ch - cssValQuery.length);
@@ -1012,7 +913,6 @@
                         }
                     });
                 } else {
-                    // CSS Property Name Context
                     var propMatch = lineTillCursor.match(/([a-zA-Z0-9\-_]*)$/);
                     var propQuery = propMatch ? propMatch[1].toLowerCase() : "";
                     from = CodeMirror.Pos(cursor.line, cursor.ch - propQuery.length);
@@ -1022,13 +922,13 @@
                             list.push(makeHintItem(p, p + ": ;", '#', 'prop', 'property', function(cm, data, cur) {
                                 var insertStr = p + ": ;";
                                 cm.replaceRange(insertStr, data.from, data.to);
-                                // Position cursor inside: property: |;
                                 cm.setCursor({ line: data.from.line, ch: data.from.ch + p.length + 2 });
                             }));
                         }
                     });
                 }
-            } else if (modeName === "javascript") {
+            } else if (isJS) {
+                // JS FILE: Only JS Suggestions
                 var jsMatch = lineTillCursor.match(/([a-zA-Z0-9\-_$]*)$/);
                 var jsQuery = jsMatch ? jsMatch[1].toLowerCase() : "";
                 from = CodeMirror.Pos(cursor.line, cursor.ch - jsQuery.length);
@@ -1052,6 +952,121 @@
                             }));
                         }
                     });
+                }
+            } else {
+                // HTML FILE: Combined HTML, CSS, and JS Suggestions
+                var lastOpenAngle = lineTillCursor.lastIndexOf("<");
+                var lastCloseAngle = lineTillCursor.lastIndexOf(">");
+
+                if (lastOpenAngle > lastCloseAngle) {
+                    var tagContent = lineTillCursor.substring(lastOpenAngle + 1);
+                    var quoteMatch = tagContent.match(/([a-zA-Z0-9\-_]+)\s*=\s*(["'])([^"']*)$/);
+                    
+                    if (quoteMatch) {
+                        var attrName = quoteMatch[1].toLowerCase();
+                        var valQuery = quoteMatch[3].toLowerCase();
+                        from = CodeMirror.Pos(cursor.line, cursor.ch - valQuery.length);
+
+                        var values = CSS_VALUES_MAP[attrName] || ["text", "password", "email", "number", "checkbox", "radio", "submit", "button", "file", "hidden", "_blank", "_self", "stylesheet", "module", "utf-8"];
+                        values.forEach(function(val) {
+                            if (!valQuery || val.toLowerCase().startsWith(valQuery)) {
+                                list.push(makeHintItem(val, val, '"', 'val', 'value', function(cm, data, cur) {
+                                    cm.replaceRange(cur.text, data.from, data.to);
+                                }));
+                            }
+                        });
+                    } else if (tagContent.indexOf(" ") !== -1) {
+                        var attrMatch = tagContent.match(/([a-zA-Z0-9\-_]*)$/);
+                        var attrQuery = attrMatch ? attrMatch[1].toLowerCase() : "";
+                        from = CodeMirror.Pos(cursor.line, cursor.ch - attrQuery.length);
+
+                        HTML_ATTRS_LIST.forEach(function(attr) {
+                            if (!attrQuery || attr.toLowerCase().startsWith(attrQuery)) {
+                                var isBool = BOOLEAN_ATTRS_SET.has(attr);
+                                var disp = isBool ? attr : attr + '=""';
+                                list.push(makeHintItem(attr, disp, '@', 'attr', 'attribute', function(cm, data, cur) {
+                                    var insertStr = isBool ? attr : attr + '=""';
+                                    cm.replaceRange(insertStr, data.from, data.to);
+                                    if (!isBool) {
+                                        cm.setCursor({ line: data.from.line, ch: data.from.ch + attr.length + 2 });
+                                    }
+                                }));
+                            }
+                        });
+                    } else {
+                        var tagQuery = tagContent.toLowerCase();
+                        from = CodeMirror.Pos(cursor.line, lastOpenAngle);
+
+                        HTML_TAG_LIST.forEach(function(t) {
+                            if (!tagQuery || t.name.toLowerCase().startsWith(tagQuery)) {
+                                var openTag = "<" + t.name + ">";
+                                var closeTag = "</" + t.name + ">";
+                                var disp = t.selfClosing ? "<" + t.name + ">" : openTag + closeTag;
+
+                                list.push(makeHintItem(t.name, disp, '<>', 'tag', 'tag', function(cm, data, cur) {
+                                    if (t.selfClosing) {
+                                        var str = t.snippet || ("<" + t.name + ">");
+                                        cm.replaceRange(str, data.from, data.to);
+                                        cm.setCursor({ line: data.from.line, ch: data.from.ch + str.length });
+                                    } else {
+                                        var openT = "<" + t.name + ">";
+                                        var fullT = openT + "</" + t.name + ">";
+                                        cm.replaceRange(fullT, data.from, data.to);
+                                        cm.setCursor({ line: data.from.line, ch: data.from.ch + openT.length });
+                                    }
+                                }));
+                            }
+                        });
+                    }
+                } else {
+                    // Plain typing inside HTML file: Show HTML Tags + CSS Properties + JS Keywords together
+                    var wordMatch = lineTillCursor.match(/([a-zA-Z0-9\-_]+)$/);
+                    if (wordMatch) {
+                        var query = wordMatch[1].toLowerCase();
+                        from = CodeMirror.Pos(cursor.line, cursor.ch - query.length);
+
+                        // 1. HTML Tags
+                        HTML_TAG_LIST.forEach(function(t) {
+                            if (t.name.toLowerCase().startsWith(query)) {
+                                var openTag = "<" + t.name + ">";
+                                var closeTag = "</" + t.name + ">";
+                                var disp = t.selfClosing ? "<" + t.name + ">" : openTag + closeTag;
+
+                                list.push(makeHintItem(t.name, disp, '<>', 'tag', 'tag', function(cm, data, cur) {
+                                    if (t.selfClosing) {
+                                        var str = t.snippet || ("<" + t.name + ">");
+                                        cm.replaceRange(str, data.from, data.to);
+                                        cm.setCursor({ line: data.from.line, ch: data.from.ch + str.length });
+                                    } else {
+                                        var openT = "<" + t.name + ">";
+                                        var fullT = openT + "</" + t.name + ">";
+                                        cm.replaceRange(fullT, data.from, data.to);
+                                        cm.setCursor({ line: data.from.line, ch: data.from.ch + openT.length });
+                                    }
+                                }));
+                            }
+                        });
+
+                        // 2. CSS Properties
+                        CSS_PROPS_LIST.forEach(function(p) {
+                            if (p.toLowerCase().startsWith(query)) {
+                                list.push(makeHintItem(p, p + ": ;", '#', 'prop', 'css', function(cm, data, cur) {
+                                    var insertStr = p + ": ;";
+                                    cm.replaceRange(insertStr, data.from, data.to);
+                                    cm.setCursor({ line: data.from.line, ch: data.from.ch + p.length + 2 });
+                                }));
+                            }
+                        });
+
+                        // 3. JS Keywords
+                        JS_KEYWORDS_LIST.forEach(function(kw) {
+                            if (kw.toLowerCase().startsWith(query)) {
+                                list.push(makeHintItem(kw, kw, 'ƒ', 'js', 'js', function(cm, data, cur) {
+                                    cm.replaceRange(cur.text, data.from, data.to);
+                                }));
+                            }
+                        });
+                    }
                 }
             }
 
@@ -1082,20 +1097,42 @@
                     var line = cm.getLine(cursor.line);
                     var beforeCursor = line.substring(0, cursor.ch);
 
+                    // HTML Boilerplate shortcut "!"
                     if (beforeCursor.trim() === "!") {
                         let boilerplate = `<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Document</title>\n</head>\n<body>\n    \n</body>\n</html>`;
                         cm.replaceRange(boilerplate, {line: cursor.line, ch: 0}, cursor);
                         cm.setCursor({line: cursor.line + 8, ch: 4});
                         return;
                     }
+
+                    // NEW: Class Expansion (e.g., div.box or .card + Enter -> <div class="box"></div>)
+                    var emmetMatch = beforeCursor.match(/(?:^|\s)([a-zA-Z0-9\-_]*)\.([a-zA-Z0-9\-_]+)$/);
+                    if (emmetMatch && (currentFileName.endsWith('.html') || cm.getOption("mode") === "htmlmixed")) {
+                        var tag = emmetMatch[1] || "div";
+                        var className = emmetMatch[2];
+                        var fullMatchStr = emmetMatch[0].trim();
+                        var startCh = cursor.ch - fullMatchStr.length;
+
+                        var expanded = `<${tag} class="${className}"></${tag}>`;
+                        cm.replaceRange(expanded, {line: cursor.line, ch: startCh}, cursor);
+
+                        var openTagLength = `<${tag} class="${className}">`.length;
+                        cm.setCursor({line: cursor.line, ch: startCh + openTagLength});
+                        return;
+                    }
+
                     cm.execCommand("newlineAndIndent"); 
                 }
             }
         });
 
-        // =========================================
+        // Prevent Mobile Browser Default Context Menu Over CodeMirror
+        editor.getWrapperElement().addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
         // Debounced Mobile Trigger Setup
-        // =========================================
         editor.on("change", function(cm, change) {
             if (change.origin === "complete" || change.origin === "+delete" || change.origin === "undo" || change.origin === "paste" || change.origin === "setValue") return;
             
@@ -1119,7 +1156,7 @@
             }
         });
 
-        // Save active editor content to state
+        // Save active editor content
         function saveCurrentFileContent() {
             let activeFile = filesList.find(f => f.name === currentFileName);
             if (activeFile) {
@@ -1127,7 +1164,7 @@
             }
         }
 
-        // Switch to selected file
+        // Switch active file
         function switchFile(filename) {
             saveCurrentFileContent();
             currentFileName = filename;
@@ -1296,9 +1333,7 @@
             }
         });
 
-        // =========================================
-        // Selection Action Menu Logic
-        // =========================================
+        // Floating Selection Menu Actions
         function hideSelectionMenu() {
             document.getElementById("selection-menu").style.display = "none";
             editor.focus();
@@ -1306,6 +1341,17 @@
 
         function menuSelectAll() {
             editor.execCommand('selectAll');
+        }
+
+        // NEW: Select Line function
+        function menuSelectLine() {
+            var from = editor.getCursor("from");
+            var to = editor.getCursor("to");
+            var lastLineLen = editor.getLine(to.line).length;
+            editor.setSelection(
+                { line: from.line, ch: 0 },
+                { line: to.line, ch: lastLineLen }
+            );
         }
 
         function menuCopy() {
@@ -1362,10 +1408,7 @@
             hideSelectionMenu();
         }
 
-
-        // =========================================
         // CSS Color Preview Feature
-        // =========================================
         let colorWidgets = [];
         function updateColorPreviews(cm) {
             colorWidgets.forEach(widget => widget.clear());
@@ -1412,9 +1455,7 @@
             editor.focus();
         }
 
-        // =========================================
         // Search & Replace Engine
-        // =========================================
         let searchCursor = null;
         let lastQuery = "";
 
@@ -1505,9 +1546,7 @@
             }
         }
 
-        // =========================================
-        // Auto Bracket Closing Toolbar logic
-        // =========================================
+        // Toolbar Symbol Insert
         function insertSymbol(event, symbol) {
             event.preventDefault();
             var doc = editor.getDoc();
@@ -1527,7 +1566,7 @@
             }
         }
 
-        // Output Functions
+        // Output Preview Functions
         function openOutput() {
             saveCurrentFileContent();
             var htmlObj = filesList.find(f => f.name.endsWith('.html'));
