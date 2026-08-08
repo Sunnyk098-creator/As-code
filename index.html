@@ -751,9 +751,8 @@
                                     text: t,
                                     displayText: t,
                                     hint: function(cm, data, completion) {
-                                        // Auto-expand tags (e.g. typing "h1" outputs "<h1></h1>")
-                                        var from = completion.from || data.from;
-                                        var to = completion.to || data.to;
+                                        var from = data.from;
+                                        var to = data.to;
                                         var selfClosing = ['img','br','hr','input','meta','link'];
                                         if (selfClosing.includes(t)) {
                                             cm.replaceRange("<" + t + ">", from, to);
@@ -788,7 +787,7 @@
                 }
             }
 
-            // 4. Inject VS Code Icons into the renderer
+            // 4. Safely Inject VS Code Icons via TextNodes (Prevents HTML Disappearance Bug)
             if (hints && hints.list && hints.list.length > 0) {
                 hints.list = hints.list.map(function(item) {
                     var isStr = typeof item === "string";
@@ -796,20 +795,34 @@
                     
                     if (!obj.render) {
                         obj.render = function(elt, data, cur) {
-                            var icon = "";
-                            var textStr = cur.displayText || cur.text;
+                            // Safely create icon span
+                            var iconSpan = document.createElement("span");
+                            iconSpan.style.fontWeight = "bold";
+                            iconSpan.style.marginRight = "8px";
+                            iconSpan.style.display = "inline-block";
+                            iconSpan.style.width = "16px";
+                            iconSpan.style.textAlign = "center";
                             
-                            // Visual identifiers mirroring VS Code
                             if (modeName === "css") {
-                                icon = '<span style="color:#569CD6; font-weight:bold; margin-right:8px; display:inline-block; width:16px; text-align:center;">#</span>';
+                                iconSpan.style.color = "#569CD6";
+                                iconSpan.textContent = "#";
                             } else if (modeName === "javascript") {
-                                icon = '<span style="color:#DCDCAA; font-weight:bold; margin-right:8px; display:inline-block; width:16px; text-align:center;">ƒ</span>';
+                                iconSpan.style.color = "#DCDCAA";
+                                iconSpan.textContent = "ƒ";
                             } else if (modeName === "xml" || modeName === "htmlmixed") {
-                                icon = '<span style="color:#569CD6; font-weight:bold; margin-right:8px; display:inline-block; width:16px; text-align:center;">&lt;&gt;</span>';
+                                iconSpan.style.color = "#569CD6";
+                                iconSpan.textContent = "<>";
                             } else {
-                                icon = '<span style="color:#9CDCFE; font-weight:bold; margin-right:8px; display:inline-block; width:16px; text-align:center;">▤</span>';
+                                iconSpan.style.color = "#9CDCFE";
+                                iconSpan.textContent = "▤";
                             }
-                            elt.innerHTML = icon + textStr;
+                            
+                            elt.appendChild(iconSpan);
+                            
+                            // Securely append text without processing it as HTML
+                            var textStr = cur.displayText || (typeof cur.text === 'string' ? cur.text : "");
+                            var textNode = document.createTextNode(textStr);
+                            elt.appendChild(textNode);
                         };
                     }
                     return obj;
