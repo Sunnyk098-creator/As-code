@@ -407,16 +407,15 @@
         .CodeMirror-hints {
             position: absolute;
             z-index: 6000;
-            overflow: hidden;
+            overflow-y: auto;
             list-style: none;
             margin: 0;
             padding: 4px 0;
-            background-color: #252526;
+            background-color: #2d2d2d;
             border: 1px solid #444;
             box-shadow: 0 4px 12px rgba(0,0,0,0.6);
             border-radius: 4px;
-            max-height: 250px;
-            overflow-y: auto;
+            max-height: 220px;
             font-family: 'Courier New', Courier, monospace;
             font-size: 14px;
         }
@@ -429,17 +428,18 @@
         }
         .CodeMirror-hint {
             margin: 0;
-            padding: 8px 14px;
+            padding: 10px 14px;
             white-space: pre;
-            color: #D4D4D4;
+            color: #f8f8f2;
             cursor: pointer;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid #3a3a3a;
+            display: block; /* For full width touch targets */
         }
         .CodeMirror-hint:last-child {
             border-bottom: none;
         }
         li.CodeMirror-hint-active {
-            background-color: #094771;
+            background-color: #04395e;
             color: white;
         }
 
@@ -703,7 +703,7 @@
         if (window.visualViewport) {
             const adjustHeight = () => {
                 document.querySelector('.main-container').style.height = window.visualViewport.height + 'px';
-                window.scrollTo(0, 0); // Stops weird bouncing when typing
+                window.scrollTo(0, 0); 
             };
             window.visualViewport.addEventListener('resize', adjustHeight);
             adjustHeight();
@@ -718,21 +718,82 @@
         let currentFileName = "index.html";
         let targetMenuFile = "";
 
-        // Helper: Get Icon Image Source based on extension
         function getIconForFile(filename) {
             if (filename.endsWith('.css')) return 'css.png';
             if (filename.endsWith('.js')) return 'js.png';
             return 'html.png';
         }
 
-        // Helper: Get CodeMirror mode by filename
         function getModeForFile(filename) {
             if (filename.endsWith('.css')) return 'css';
             if (filename.endsWith('.js')) return 'javascript';
             return 'htmlmixed';
         }
 
-        // Initialize CodeMirror Editor with new custom-dark theme
+        // =========================================
+        // Context-Aware VS Code Style IntelliSense Engine
+        // =========================================
+        function getSmartHints(cm, options) {
+            var cursor = cm.getCursor();
+            var token = cm.getTokenAt(cursor);
+            var innerMode = CodeMirror.innerMode(cm.getMode(), token.state);
+            var modeName = innerMode.mode.name;
+
+            var hints = null;
+            
+            // 1. Context Language Routing
+            if (modeName === "xml" || modeName === "htmlmixed") {
+                if (CodeMirror.hint.html) hints = CodeMirror.hint.html(cm, options);
+            } else if (modeName === "css") {
+                if (CodeMirror.hint.css) hints = CodeMirror.hint.css(cm, options);
+            } else if (modeName === "javascript") {
+                if (CodeMirror.hint.javascript) hints = CodeMirror.hint.javascript(cm, options);
+            }
+
+            // 2. Fallback or Augment with Anyword (For Project/File Local Symbols & Variables)
+            var anywordHints = CodeMirror.hint.anyword ? CodeMirror.hint.anyword(cm, options) : null;
+            
+            if (!hints || !hints.list || hints.list.length === 0) {
+                hints = anywordHints;
+            } else if (anywordHints && anywordHints.list) {
+                // Safely mix "anyword" local symbols into Javascript and CSS contexts
+                if (modeName === "javascript" || modeName === "css") {
+                    var existingSet = new Set(hints.list.map(function(h) { 
+                        return typeof h === 'string' ? h : h.text; 
+                    }));
+                    for (var i = 0; i < anywordHints.list.length; i++) {
+                        var word = typeof anywordHints.list[i] === 'string' ? anywordHints.list[i] : anywordHints.list[i].text;
+                        if (!existingSet.has(word) && word.length > 1) {
+                            hints.list.push(word);
+                        }
+                    }
+                }
+            }
+
+            // 3. Smart Filtering and Ranking (Ensures typed prefix sits at top)
+            if (hints && hints.list && hints.list.length > 0) {
+                var prefix = token.string;
+                if (token.type === null || prefix.match(/^[.,:\s"']$/)) { prefix = ""; }
+                else if (prefix === "<" && modeName === "xml") { prefix = "<"; }
+                
+                hints.list.sort(function(a, b) {
+                    var textA = (typeof a === 'string' ? a : a.text).toLowerCase();
+                    var textB = (typeof b === 'string' ? b : b.text).toLowerCase();
+                    var pre = prefix.toLowerCase();
+                    
+                    var aStarts = textA.startsWith(pre);
+                    var bStarts = textB.startsWith(pre);
+                    
+                    if (aStarts && !bStarts) return -1;
+                    if (!aStarts && bStarts) return 1;
+                    return textA.localeCompare(textB);
+                });
+            }
+
+            return hints;
+        }
+
+        // Initialize CodeMirror Editor
         var editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
             mode: "htmlmixed",
             theme: "custom-dark", 
@@ -744,13 +805,13 @@
             viewportMargin: Infinity,
             inputStyle: "contenteditable",
             extraKeys: {
-                "Ctrl-Space": "autocomplete", // Keyboard shortcut to force trigger autocomplete
+                "Ctrl-Space": "autocomplete",
                 "Enter": function(cm) {
                     var cursor = cm.getCursor();
                     var line = cm.getLine(cursor.line);
                     var beforeCursor = line.substring(0, cursor.ch);
 
-                    // 1. ! + Enter -> Boilerplate
+                    // Boilerplate macro
                     if (beforeCursor.trim() === "!") {
                         let boilerplate = `<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Document</title>\n</head>\n<body>\n    \n</body>\n</html>`;
                         cm.replaceRange(boilerplate, {line: cursor.line, ch: 0}, cursor);
@@ -758,7 +819,7 @@
                         return;
                     }
 
-                    // 2. Custom tag expansions (e.g. img, p, div)
+                    // Custom tag expansions
                     var match = beforeCursor.match(/([a-zA-Z0-9]+)$/);
                     if (match) {
                         var tag = match[1].toLowerCase();
@@ -791,32 +852,51 @@
                         }
                     }
 
-                    // Forcing standard Enter Action on Vercel/mobile keyboards
                     cm.execCommand("newlineAndIndent"); 
                 }
             }
         });
 
         // =========================================
-        // Context-Aware VS Code IntelliSense Engine
+        // Automatic Real-time IntelliSense Trigger
         // =========================================
         editor.on("inputRead", function(cm, change) {
-            // Ignore spaces, enters, backspaces, etc.
             if (change.origin !== "+input") return;
-            let char = change.text[0];
+            var char = change.text[0];
             
-            // Trigger context-aware completion on standard characters
-            if (/[a-zA-Z0-9_$-<.@:]/.test(char)) {
-                // Short delay avoids interrupting very fast typists
-                setTimeout(function() {
-                    if (!cm.state.completionActive) {
-                        cm.showHint({
-                            completeSingle: false, // Don't auto-insert if there's only one match
-                            alignWithWord: true // Align box beautifully
-                        });
-                    }
-                }, 50);
+            var isTriggerChar = /[a-zA-Z0-9_$-<.@:"']/.test(char);
+            var isSpace = (char === " ");
+
+            if (!isTriggerChar && !isSpace) return;
+            
+            var cursor = cm.getCursor();
+            var token = cm.getTokenAt(cursor);
+            var innerMode = CodeMirror.innerMode(cm.getMode(), token.state);
+            
+            // Context-Aware Trigger Handling (prevents random popup on spaces)
+            if (isSpace) {
+                if (innerMode.mode.name === "xml") {
+                    if (token.type !== "tag" && token.string.trim() !== "") return;
+                } else if (innerMode.mode.name === "css") {
+                    var prevToken = cm.getTokenAt({line: cursor.line, ch: token.start});
+                    if (prevToken.string !== ":") return;
+                } else {
+                    return;
+                }
             }
+            
+            // Fast Debounce to prevent UI lag on fast mobile typing
+            clearTimeout(cm.state.completionTimeout);
+            cm.state.completionTimeout = setTimeout(function() {
+                if (!cm.state.completionActive) {
+                    cm.showHint({
+                        hint: getSmartHints,
+                        completeSingle: false, // Ensures user can keep typing without forced auto-insert
+                        alignWithWord: true,
+                        closeCharacters: /[\s()\[\]{};>,]/ // Custom closer limits popup disappearance
+                    });
+                }
+            }, 80);
         });
 
         // Save active editor content to state
@@ -841,12 +921,10 @@
             editor.setValue(activeFile.content);
             renderFileList();
             
-            // Close sidebar
             document.getElementById('sidebar').classList.remove('active');
             document.getElementById('sidebar-overlay').style.display = 'none';
         }
 
-        // Render File List in Drawer
         function renderFileList() {
             const listContainer = document.getElementById('file-list');
             listContainer.innerHTML = '';
@@ -884,7 +962,6 @@
             });
         }
 
-        // File Menu Operations
         function openFileMenu(e, filename) {
             targetMenuFile = filename;
             const popup = document.getElementById('fileMenuPopup');
@@ -976,23 +1053,21 @@
             }
         }
 
-        // Trigger updates when cursor selects text for context menu
         editor.on("cursorActivity", function(cm) {
-            // Handle Context Menu Display when text is selected
+            // Handle Floating Context Menu Display when text is selected
             if (cm.somethingSelected()) {
-                let coords = cm.cursorCoords(true, "window"); // Coordinates at start of selection
+                let coords = cm.cursorCoords(true, "window"); 
                 let menu = document.getElementById("selection-menu");
                 menu.style.display = "flex";
                 
-                // Position intelligently so it does not overflow
                 let leftPos = Math.max(10, coords.left - 20);
                 if (leftPos + menu.offsetWidth > window.innerWidth) {
                     leftPos = window.innerWidth - menu.offsetWidth - 10;
                 }
                 
-                let topPos = coords.top - 55; // Place above text
+                let topPos = coords.top - 55; 
                 if (topPos < 60) {
-                    topPos = coords.bottom + 15; // Place below text if space is tight at top
+                    topPos = coords.bottom + 15; 
                 }
                 
                 menu.style.top = topPos + "px";
@@ -1049,8 +1124,6 @@
         function menuComment() {
             if (!editor.somethingSelected()) return;
             let from = editor.getCursor("from");
-            
-            // Core logic to get context/mode (CSS, JS, or HTML)
             let modeData = editor.getModeAt(from);
             let modeName = modeData.name;
             
@@ -1058,14 +1131,11 @@
             let commentedText = "";
 
             if (modeName === "javascript") {
-                // Add JS comment
                 let lines = selText.split('\n');
                 commentedText = lines.map(line => '// ' + line).join('\n');
             } else if (modeName === "css") {
-                // Add CSS comment
                 commentedText = "/* " + selText + " */";
             } else {
-                // HTML/XML Default Comment
                 commentedText = "<!-- " + selText + " -->";
             }
 
@@ -1081,7 +1151,6 @@
         function updateColorPreviews(cm) {
             colorWidgets.forEach(widget => widget.clear());
             colorWidgets = [];
-
             const hexRegex = /#([0-9a-fA-F]{3,8})\b/g;
 
             cm.eachLine(lineHandle => {
@@ -1112,9 +1181,6 @@
             colorTimeout = setTimeout(() => updateColorPreviews(cm), 250);
         });
 
-        // =========================================
-        // Direct Color Picker Functionality
-        // =========================================
         function openColorPicker() {
             document.getElementById("nativeColorPicker").click();
         }
@@ -1234,7 +1300,7 @@
                 editor.focus();
             } else if (bracketPairs[symbol]) {
                 doc.replaceRange(symbol + bracketPairs[symbol], cursor);
-                doc.setCursor({line: cursor.line, ch: cursor.ch + 1}); // Moves cursor right in the middle
+                doc.setCursor({line: cursor.line, ch: cursor.ch + 1}); 
                 editor.focus();
             } else {
                 doc.replaceRange(symbol, cursor);
