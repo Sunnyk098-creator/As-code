@@ -736,7 +736,8 @@
             if (nativeHints && nativeHints.list && nativeHints.list.length > 0) {
                 hints = nativeHints;
             } else {
-                // 2. VS Code Emmet-Style Fallback for HTML Tags (When user types 'h' instead of '<h')
+                // 2. VS Code Emmet-Style Expansion for HTML Tags 
+                // E.g., user types "h1" -> suggests "h1", clicking expands to "<h1></h1>" and positions cursor.
                 if (modeName === "xml" || modeName === "htmlmixed") {
                     var prefix = token.string.trim();
                     if (prefix && /^[a-zA-Z0-9]+$/.test(prefix) && (token.type === null || token.type === "text" || token.type === "tag")) {
@@ -759,6 +760,7 @@
                                             cm.setCursor({line: from.line, ch: from.ch + t.length + 2});
                                         } else {
                                             cm.replaceRange("<" + t + "></" + t + ">", from, to);
+                                            // Place cursor inside the tags exactly
                                             cm.setCursor({line: from.line, ch: from.ch + t.length + 2});
                                         }
                                     }
@@ -787,7 +789,7 @@
                 }
             }
 
-            // 4. Safely Inject VS Code Icons via TextNodes (Prevents HTML Disappearance Bug)
+            // 4. Safely Inject VS Code Icons via TextNodes (Prevents Invisible HTML Bug)
             if (hints && hints.list && hints.list.length > 0) {
                 hints.list = hints.list.map(function(item) {
                     var isStr = typeof item === "string";
@@ -795,7 +797,10 @@
                     
                     if (!obj.render) {
                         obj.render = function(elt, data, cur) {
-                            // Safely create icon span
+                            // Empty out list item first safely
+                            elt.innerHTML = "";
+                            
+                            // Create icon span
                             var iconSpan = document.createElement("span");
                             iconSpan.style.fontWeight = "bold";
                             iconSpan.style.marginRight = "8px";
@@ -819,7 +824,7 @@
                             
                             elt.appendChild(iconSpan);
                             
-                            // Securely append text without processing it as HTML
+                            // SECURELY append text using createTextNode to prevent rendering raw HTML tags
                             var textStr = cur.displayText || (typeof cur.text === 'string' ? cur.text : "");
                             var textNode = document.createTextNode(textStr);
                             elt.appendChild(textNode);
@@ -880,19 +885,19 @@
         });
 
         // =========================================
-        // Upgraded & Debounced Mobile Trigger Fix
+        // Debounced Mobile Trigger Setup
         // =========================================
         editor.on("change", function(cm, change) {
-            // Ignore programmed inputs, deletes, undos, auto-closes
+            // Ignore programmatic text modifications
             if (change.origin === "complete" || change.origin === "+delete" || change.origin === "undo" || change.origin === "paste" || change.origin === "setValue") return;
             
             var char = change.text[0];
             if (!char) return;
             
-            // Prevent popup from triggering annoyingly when closing brackets
+            // Do not open suggestion box when user closes a bracket/tag manually
             if (/[\)\]}>]/.test(char)) return;
 
-            // Trigger automatically for letters, numbers, and specific characters
+            // Trigger automatically for letters, numbers, and certain symbols
             if (/[a-zA-Z0-9_$\-<.@:"']/.test(char) || char === " ") {
                 clearTimeout(cm.state.completionTimeout);
                 cm.state.completionTimeout = setTimeout(function() {
@@ -901,10 +906,10 @@
                             hint: getSmartHints,
                             completeSingle: false, 
                             alignWithWord: true,
-                            closeCharacters: /[\s()\[\]{};>,]/ // Custom closer limits disappearance
+                            closeCharacters: /[\s()\[\]{};>,]/ 
                         });
                     }
-                }, 120); // 120ms debounce optimal for mobile keyboards
+                }, 150); // Small debounce smooths out rapid mobile typing
             }
         });
 
