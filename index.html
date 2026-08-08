@@ -400,6 +400,7 @@
             max-height: 250px;
             font-family: 'Courier New', Courier, monospace;
             font-size: 14px;
+            min-width: 220px;
         }
         .CodeMirror-hints::-webkit-scrollbar {
             width: 6px;
@@ -410,13 +411,14 @@
         }
         .CodeMirror-hint {
             margin: 0;
-            padding: 10px 14px;
+            padding: 8px 12px;
             white-space: pre;
             color: #D4D4D4;
             cursor: pointer;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid #2d2d2d;
             display: flex;
             align-items: center;
+            justify-content: space-between;
         }
         .CodeMirror-hint:last-child {
             border-bottom: none;
@@ -424,6 +426,33 @@
         li.CodeMirror-hint-active {
             background-color: #094771;
             color: white;
+        }
+
+        .cm-hint-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .cm-hint-badge {
+            font-weight: bold;
+            font-size: 11px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            display: inline-block;
+            min-width: 22px;
+            text-align: center;
+            font-family: monospace;
+        }
+        .cm-hint-badge.tag { background: #1e3a5f; color: #569CD6; border: 1px solid #264f78; }
+        .cm-hint-badge.attr { background: #3d2b1f; color: #CE9178; border: 1px solid #6e4023; }
+        .cm-hint-badge.prop { background: #1f3b30; color: #4EC9B0; border: 1px solid #265c49; }
+        .cm-hint-badge.val { background: #3b1f3a; color: #C586C0; border: 1px solid #632a61; }
+        .cm-hint-badge.js { background: #3c3a1f; color: #DCDCAA; border: 1px solid #635f29; }
+        .cm-hint-type {
+            font-size: 11px;
+            opacity: 0.6;
+            font-style: italic;
+            margin-left: 10px;
         }
 
         /* Shortcut Toolbar */
@@ -713,146 +742,326 @@
         }
 
         // =========================================
-        // Context-Aware VS Code Style IntelliSense Engine
+        // Context-Aware VS Code IntelliSense Engine
         // =========================================
+        const HTML_TAG_LIST = [
+            { name: "a", selfClosing: false },
+            { name: "article", selfClosing: false },
+            { name: "aside", selfClosing: false },
+            { name: "audio", selfClosing: false, snippet: '<audio controls src=""></audio>' },
+            { name: "b", selfClosing: false },
+            { name: "body", selfClosing: false },
+            { name: "br", selfClosing: true },
+            { name: "button", selfClosing: false },
+            { name: "canvas", selfClosing: false },
+            { name: "code", selfClosing: false },
+            { name: "div", selfClosing: false },
+            { name: "em", selfClosing: false },
+            { name: "footer", selfClosing: false },
+            { name: "form", selfClosing: false },
+            { name: "h1", selfClosing: false },
+            { name: "h2", selfClosing: false },
+            { name: "h3", selfClosing: false },
+            { name: "h4", selfClosing: false },
+            { name: "h5", selfClosing: false },
+            { name: "h6", selfClosing: false },
+            { name: "head", selfClosing: false },
+            { name: "header", selfClosing: false },
+            { name: "hr", selfClosing: true },
+            { name: "html", selfClosing: false },
+            { name: "i", selfClosing: false },
+            { name: "iframe", selfClosing: false },
+            { name: "img", selfClosing: true, snippet: '<img src="" alt="">' },
+            { name: "input", selfClosing: true, snippet: '<input type="text">' },
+            { name: "label", selfClosing: false },
+            { name: "li", selfClosing: false },
+            { name: "link", selfClosing: true, snippet: '<link rel="stylesheet" href="">' },
+            { name: "main", selfClosing: false },
+            { name: "mark", selfClosing: false },
+            { name: "meta", selfClosing: true, snippet: '<meta charset="UTF-8">' },
+            { name: "nav", selfClosing: false },
+            { name: "ol", selfClosing: false },
+            { name: "option", selfClosing: false },
+            { name: "p", selfClosing: false },
+            { name: "pre", selfClosing: false },
+            { name: "script", selfClosing: false },
+            { name: "section", selfClosing: false },
+            { name: "select", selfClosing: false },
+            { name: "span", selfClosing: false },
+            { name: "strong", selfClosing: false },
+            { name: "style", selfClosing: false },
+            { name: "table", selfClosing: false },
+            { name: "tbody", selfClosing: false },
+            { name: "td", selfClosing: false },
+            { name: "textarea", selfClosing: false },
+            { name: "th", selfClosing: false },
+            { name: "thead", selfClosing: false },
+            { name: "title", selfClosing: false },
+            { name: "tr", selfClosing: false },
+            { name: "ul", selfClosing: false },
+            { name: "video", selfClosing: false, snippet: '<video controls src=""></video>' }
+        ];
+
+        const HTML_ATTRS_LIST = [
+            "class", "id", "style", "title", "dir", "lang", "hidden", "tabindex", "accesskey", "contenteditable", "draggable",
+            "href", "src", "alt", "width", "height", "type", "value", "placeholder", "name", "required", "disabled", "readonly",
+            "checked", "target", "rel", "action", "method", "for", "colspan", "rowspan", "autocomplete", "autofocus",
+            "controls", "autoplay", "loop", "muted", "poster", "preload", "charset", "content", "http-equiv", "download"
+        ];
+
+        const BOOLEAN_ATTRS_SET = new Set(["required", "disabled", "readonly", "checked", "hidden", "autofocus", "controls", "autoplay", "loop", "muted", "allowfullscreen"]);
+
+        const CSS_PROPS_LIST = [
+            "height", "width", "color", "background", "background-color", "background-image", "background-size", "background-position",
+            "display", "position", "padding", "padding-top", "padding-bottom", "padding-left", "padding-right",
+            "margin", "margin-top", "margin-bottom", "margin-left", "margin-right",
+            "font-size", "font-family", "font-weight", "line-height", "text-align", "text-decoration", "text-transform",
+            "border", "border-radius", "border-color", "border-top", "border-bottom", "border-left", "border-right",
+            "flex", "flex-direction", "flex-wrap", "justify-content", "align-items", "gap",
+            "opacity", "overflow", "overflow-x", "overflow-y", "cursor", "z-index", "box-shadow", "box-sizing",
+            "top", "bottom", "left", "right", "max-width", "min-width", "max-height", "min-height",
+            "transform", "transition", "animation", "visibility", "float", "clear", "outline",
+            "letter-spacing", "word-spacing", "white-space", "pointer-events", "user-select",
+            "grid", "grid-template-columns", "grid-template-rows", "grid-gap"
+        ];
+
+        const CSS_VALUES_MAP = {
+            "display": ["block", "inline", "inline-block", "flex", "inline-flex", "grid", "inline-grid", "none", "contents"],
+            "position": ["relative", "absolute", "fixed", "sticky", "static"],
+            "flex-direction": ["row", "row-reverse", "column", "column-reverse"],
+            "justify-content": ["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly"],
+            "align-items": ["flex-start", "flex-end", "center", "baseline", "stretch"],
+            "text-align": ["left", "right", "center", "justify"],
+            "font-weight": ["normal", "bold", "bolder", "lighter", "100", "200", "300", "400", "500", "600", "700", "800", "900"],
+            "overflow": ["visible", "hidden", "scroll", "auto"],
+            "visibility": ["visible", "hidden", "collapse"],
+            "cursor": ["pointer", "default", "auto", "move", "not-allowed", "grab", "grabbing", "text"],
+            "box-sizing": ["border-box", "content-box"],
+            "white-space": ["nowrap", "pre", "pre-wrap", "pre-line", "normal"]
+        };
+
+        const JS_KEYWORDS_LIST = [
+            "function", "const", "let", "var", "if", "else", "return", "for", "while", "switch", "case", "break", "continue",
+            "try", "catch", "finally", "async", "await", "class", "export", "import", "document", "window", "console",
+            "addEventListener", "getElementById", "querySelector", "querySelectorAll", "createElement", "appendChild",
+            "removeChild", "setAttribute", "getAttribute", "style", "classList", "value", "innerHTML", "textContent",
+            "forEach", "map", "filter", "reduce", "push", "pop", "length", "toString", "includes", "indexOf",
+            "JSON.parse", "JSON.stringify", "fetch", "Promise", "setTimeout", "setInterval", "true", "false", "null", "undefined"
+        ];
+
+        function makeHintItem(text, displayText, badgeLabel, badgeClass, typeLabel, hintFn) {
+            return {
+                text: text,
+                displayText: displayText || text,
+                render: function(elt, data, cur) {
+                    elt.innerHTML = "";
+                    var leftDiv = document.createElement("div");
+                    leftDiv.className = "cm-hint-left";
+
+                    var badge = document.createElement("span");
+                    badge.className = "cm-hint-badge " + badgeClass;
+                    badge.textContent = badgeLabel;
+
+                    var txt = document.createElement("span");
+                    txt.textContent = cur.displayText || cur.text;
+
+                    leftDiv.appendChild(badge);
+                    leftDiv.appendChild(txt);
+
+                    var typeSpan = document.createElement("span");
+                    typeSpan.className = "cm-hint-type";
+                    typeSpan.textContent = typeLabel;
+
+                    elt.appendChild(leftDiv);
+                    elt.appendChild(typeSpan);
+                },
+                hint: hintFn
+            };
+        }
+
         function getSmartHints(cm, options) {
             var cursor = cm.getCursor();
+            var line = cm.getLine(cursor.line);
+            var lineTillCursor = line.slice(0, cursor.ch);
             var token = cm.getTokenAt(cursor);
-            var innerMode = CodeMirror.innerMode(cm.getMode(), token.state);
-            var modeName = innerMode.mode.name;
+            var inner = CodeMirror.innerMode(cm.getMode(), token.state);
+            var modeName = inner.mode.name;
 
-            var hints = null;
-            var nativeHints = null;
-            
-            // 1. Context Language Routing
+            var list = [];
+            var from = CodeMirror.Pos(cursor.line, token.start);
+            var to = CodeMirror.Pos(cursor.line, token.end);
+
             if (modeName === "xml" || modeName === "htmlmixed") {
-                if (CodeMirror.hint.html) nativeHints = CodeMirror.hint.html(cm, options);
-            } else if (modeName === "css") {
-                if (CodeMirror.hint.css) nativeHints = CodeMirror.hint.css(cm, options);
-            } else if (modeName === "javascript") {
-                if (CodeMirror.hint.javascript) nativeHints = CodeMirror.hint.javascript(cm, options);
-            }
+                var lastOpenAngle = lineTillCursor.lastIndexOf("<");
+                var lastCloseAngle = lineTillCursor.lastIndexOf(">");
 
-            if (nativeHints && nativeHints.list && nativeHints.list.length > 0) {
-                hints = nativeHints;
-            } else {
-                // 2. VS Code Emmet-Style Expansion for HTML Tags 
-                // E.g., user types "h1" -> suggests "h1", clicking expands to "<h1></h1>" and positions cursor.
-                if (modeName === "xml" || modeName === "htmlmixed") {
-                    var prefix = token.string.trim();
-                    if (prefix && /^[a-zA-Z0-9]+$/.test(prefix) && (token.type === null || token.type === "text" || token.type === "tag")) {
-                        var schema = CodeMirror.htmlSchema || {};
-                        var allTags = Object.keys(schema);
-                        var matchedTags = allTags.filter(t => t.startsWith(prefix.toLowerCase()));
-                        
-                        if (matchedTags.length > 0) {
-                            hints = { list: [], from: CodeMirror.Pos(cursor.line, token.start), to: CodeMirror.Pos(cursor.line, token.end) };
-                            matchedTags.forEach(t => {
-                                hints.list.push({
-                                    text: t,
-                                    displayText: t,
-                                    hint: function(cm, data, completion) {
-                                        var from = data.from;
-                                        var to = data.to;
-                                        var selfClosing = ['img','br','hr','input','meta','link'];
-                                        if (selfClosing.includes(t)) {
-                                            cm.replaceRange("<" + t + ">", from, to);
-                                            cm.setCursor({line: from.line, ch: from.ch + t.length + 2});
-                                        } else {
-                                            cm.replaceRange("<" + t + "></" + t + ">", from, to);
-                                            // Place cursor inside the tags exactly
-                                            cm.setCursor({line: from.line, ch: from.ch + t.length + 2});
-                                        }
-                                    }
-                                });
-                            });
-                        }
-                    }
-                }
-            }
-
-            // 3. Fallback or Augment with Anyword (For Local Variables/Functions)
-            var anywordHints = CodeMirror.hint.anyword ? CodeMirror.hint.anyword(cm, options) : null;
-            if (!hints || !hints.list || hints.list.length === 0) {
-                hints = anywordHints;
-            } else if (anywordHints && anywordHints.list) {
-                if (modeName === "javascript" || modeName === "css") {
-                    var existingSet = new Set(hints.list.map(function(h) { 
-                        return typeof h === 'string' ? h : h.text; 
-                    }));
-                    for (var i = 0; i < anywordHints.list.length; i++) {
-                        var word = typeof anywordHints.list[i] === 'string' ? anywordHints.list[i] : anywordHints.list[i].text;
-                        if (!existingSet.has(word) && word.length > 1) {
-                            hints.list.push(word);
-                        }
-                    }
-                }
-            }
-
-            // 4. Safely Inject VS Code Icons via TextNodes (Prevents Invisible HTML Bug)
-            if (hints && hints.list && hints.list.length > 0) {
-                hints.list = hints.list.map(function(item) {
-                    var isStr = typeof item === "string";
-                    var obj = isStr ? { text: item, displayText: item } : item;
+                if (lastOpenAngle > lastCloseAngle) {
+                    // Inside an HTML tag: < ... >
+                    var tagContent = lineTillCursor.substring(lastOpenAngle + 1);
                     
-                    if (!obj.render) {
-                        obj.render = function(elt, data, cur) {
-                            // Empty out list item first safely
-                            elt.innerHTML = "";
-                            
-                            // Create icon span
-                            var iconSpan = document.createElement("span");
-                            iconSpan.style.fontWeight = "bold";
-                            iconSpan.style.marginRight = "8px";
-                            iconSpan.style.display = "inline-block";
-                            iconSpan.style.width = "16px";
-                            iconSpan.style.textAlign = "center";
-                            
-                            if (modeName === "css") {
-                                iconSpan.style.color = "#569CD6";
-                                iconSpan.textContent = "#";
-                            } else if (modeName === "javascript") {
-                                iconSpan.style.color = "#DCDCAA";
-                                iconSpan.textContent = "ƒ";
-                            } else if (modeName === "xml" || modeName === "htmlmixed") {
-                                iconSpan.style.color = "#569CD6";
-                                iconSpan.textContent = "<>";
-                            } else {
-                                iconSpan.style.color = "#9CDCFE";
-                                iconSpan.textContent = "▤";
+                    // Check Attribute Value Context
+                    var quoteMatch = tagContent.match(/([a-zA-Z0-9\-_]+)\s*=\s*(["'])([^"']*)$/);
+                    if (quoteMatch) {
+                        var attrName = quoteMatch[1].toLowerCase();
+                        var valQuery = quoteMatch[3].toLowerCase();
+                        from = CodeMirror.Pos(cursor.line, cursor.ch - valQuery.length);
+
+                        var values = CSS_VALUES_MAP[attrName] || ["text", "password", "email", "number", "checkbox", "radio", "submit", "button", "file", "hidden", "_blank", "_self", "stylesheet", "module", "utf-8"];
+                        values.forEach(function(val) {
+                            if (!valQuery || val.toLowerCase().startsWith(valQuery)) {
+                                list.push(makeHintItem(val, val, '"', 'val', 'value', function(cm, data, cur) {
+                                    cm.replaceRange(cur.text, data.from, data.to);
+                                }));
                             }
-                            
-                            elt.appendChild(iconSpan);
-                            
-                            // SECURELY append text using createTextNode to prevent rendering raw HTML tags
-                            var textStr = cur.displayText || (typeof cur.text === 'string' ? cur.text : "");
-                            var textNode = document.createTextNode(textStr);
-                            elt.appendChild(textNode);
-                        };
+                        });
+                    } else if (tagContent.indexOf(" ") !== -1) {
+                        // Attribute Context e.g. <div class="foo" h or <a h
+                        var attrMatch = tagContent.match(/([a-zA-Z0-9\-_]*)$/);
+                        var attrQuery = attrMatch ? attrMatch[1].toLowerCase() : "";
+                        from = CodeMirror.Pos(cursor.line, cursor.ch - attrQuery.length);
+
+                        HTML_ATTRS_LIST.forEach(function(attr) {
+                            if (!attrQuery || attr.toLowerCase().startsWith(attrQuery)) {
+                                var isBool = BOOLEAN_ATTRS_SET.has(attr);
+                                var disp = isBool ? attr : attr + '=""';
+                                list.push(makeHintItem(attr, disp, '@', 'attr', 'attribute', function(cm, data, cur) {
+                                    var insertStr = isBool ? attr : attr + '=""';
+                                    cm.replaceRange(insertStr, data.from, data.to);
+                                    if (!isBool) {
+                                        // Place cursor inside quotes: attr="|"
+                                        cm.setCursor({ line: data.from.line, ch: data.from.ch + attr.length + 2 });
+                                    }
+                                }));
+                            }
+                        });
+                    } else {
+                        // Tag Name Context inside angle bracket e.g. <h
+                        var tagQuery = tagContent.toLowerCase();
+                        from = CodeMirror.Pos(cursor.line, lastOpenAngle);
+
+                        HTML_TAG_LIST.forEach(function(t) {
+                            if (!tagQuery || t.name.toLowerCase().startsWith(tagQuery)) {
+                                var openTag = "<" + t.name + ">";
+                                var closeTag = "</" + t.name + ">";
+                                var disp = t.selfClosing ? "<" + t.name + ">" : openTag + closeTag;
+
+                                list.push(makeHintItem(t.name, disp, '<>', 'tag', 'tag', function(cm, data, cur) {
+                                    if (t.selfClosing) {
+                                        var str = t.snippet || ("<" + t.name + ">");
+                                        cm.replaceRange(str, data.from, data.to);
+                                        cm.setCursor({ line: data.from.line, ch: data.from.ch + str.length });
+                                    } else {
+                                        var openT = "<" + t.name + ">";
+                                        var fullT = openT + "</" + t.name + ">";
+                                        cm.replaceRange(fullT, data.from, data.to);
+                                        // Place cursor inside between opening and closing tags: <h1>|</h1>
+                                        cm.setCursor({ line: data.from.line, ch: data.from.ch + openT.length });
+                                    }
+                                }));
+                            }
+                        });
                     }
-                    return obj;
+                } else {
+                    // Outside angle bracket - Plain word tag completion (e.g. typing "h1" or "h" in body)
+                    var wordMatch = lineTillCursor.match(/([a-zA-Z0-9\-_]+)$/);
+                    if (wordMatch) {
+                        var query = wordMatch[1].toLowerCase();
+                        from = CodeMirror.Pos(cursor.line, cursor.ch - query.length);
+
+                        HTML_TAG_LIST.forEach(function(t) {
+                            if (t.name.toLowerCase().startsWith(query)) {
+                                var openTag = "<" + t.name + ">";
+                                var closeTag = "</" + t.name + ">";
+                                var disp = t.selfClosing ? "<" + t.name + ">" : openTag + closeTag;
+
+                                list.push(makeHintItem(t.name, disp, '<>', 'tag', 'tag', function(cm, data, cur) {
+                                    if (t.selfClosing) {
+                                        var str = t.snippet || ("<" + t.name + ">");
+                                        cm.replaceRange(str, data.from, data.to);
+                                        cm.setCursor({ line: data.from.line, ch: data.from.ch + str.length });
+                                    } else {
+                                        var openT = "<" + t.name + ">";
+                                        var fullT = openT + "</" + t.name + ">";
+                                        cm.replaceRange(fullT, data.from, data.to);
+                                        // Place cursor inside between opening and closing tags: <h1>|</h1>
+                                        cm.setCursor({ line: data.from.line, ch: data.from.ch + openT.length });
+                                    }
+                                }));
+                            }
+                        });
+                    }
+                }
+            } else if (modeName === "css") {
+                var colonIdx = lineTillCursor.lastIndexOf(":");
+                var semiIdx = lineTillCursor.lastIndexOf(";");
+                
+                if (colonIdx > semiIdx && colonIdx !== -1) {
+                    // CSS Property Value Context
+                    var valMatch = lineTillCursor.substring(colonIdx + 1).match(/([a-zA-Z0-9\-_]*)$/);
+                    var cssValQuery = valMatch ? valMatch[1].toLowerCase() : "";
+                    from = CodeMirror.Pos(cursor.line, cursor.ch - cssValQuery.length);
+
+                    var propBeforeColon = lineTillCursor.substring(0, colonIdx).trim().split(/\s+/).pop().toLowerCase();
+                    var allowedVals = CSS_VALUES_MAP[propBeforeColon] || ["auto", "inherit", "initial", "none", "center", "bold", "solid", "transparent"];
+
+                    allowedVals.forEach(function(val) {
+                        if (!cssValQuery || val.toLowerCase().startsWith(cssValQuery)) {
+                            list.push(makeHintItem(val, val, '"', 'val', 'value', function(cm, data, cur) {
+                                cm.replaceRange(cur.text, data.from, data.to);
+                            }));
+                        }
+                    });
+                } else {
+                    // CSS Property Name Context
+                    var propMatch = lineTillCursor.match(/([a-zA-Z0-9\-_]*)$/);
+                    var propQuery = propMatch ? propMatch[1].toLowerCase() : "";
+                    from = CodeMirror.Pos(cursor.line, cursor.ch - propQuery.length);
+
+                    CSS_PROPS_LIST.forEach(function(p) {
+                        if (!propQuery || p.toLowerCase().startsWith(propQuery)) {
+                            list.push(makeHintItem(p, p + ": ;", '#', 'prop', 'property', function(cm, data, cur) {
+                                var insertStr = p + ": ;";
+                                cm.replaceRange(insertStr, data.from, data.to);
+                                // Position cursor inside: property: |;
+                                cm.setCursor({ line: data.from.line, ch: data.from.ch + p.length + 2 });
+                            }));
+                        }
+                    });
+                }
+            } else if (modeName === "javascript") {
+                var jsMatch = lineTillCursor.match(/([a-zA-Z0-9\-_$]*)$/);
+                var jsQuery = jsMatch ? jsMatch[1].toLowerCase() : "";
+                from = CodeMirror.Pos(cursor.line, cursor.ch - jsQuery.length);
+
+                JS_KEYWORDS_LIST.forEach(function(kw) {
+                    if (!jsQuery || kw.toLowerCase().startsWith(jsQuery)) {
+                        list.push(makeHintItem(kw, kw, 'ƒ', 'js', 'keyword', function(cm, data, cur) {
+                            cm.replaceRange(cur.text, data.from, data.to);
+                        }));
+                    }
                 });
 
-                // 5. Smart Ranking (Push exact prefix matches to the very top)
-                var sortPrefix = (token.string || "").toLowerCase().trim();
-                if (sortPrefix.startsWith("<")) sortPrefix = sortPrefix.substring(1);
-                
-                hints.list.sort(function(a, b) {
-                    var textA = (a.displayText || a.text).toLowerCase();
-                    var textB = (b.displayText || b.text).toLowerCase();
-                    if (textA.startsWith("<")) textA = textA.substring(1);
-                    if (textB.startsWith("<")) textB = textB.substring(1);
-                    
-                    var aStarts = textA.startsWith(sortPrefix);
-                    var bStarts = textB.startsWith(sortPrefix);
-                    
-                    if (aStarts && !bStarts) return -1;
-                    if (!aStarts && bStarts) return 1;
-                    return textA.localeCompare(textB);
-                });
+                var anywordHints = CodeMirror.hint.anyword ? CodeMirror.hint.anyword(cm, options) : null;
+                if (anywordHints && anywordHints.list) {
+                    var existingSet = new Set(list.map(i => i.text));
+                    anywordHints.list.forEach(function(item) {
+                        var w = typeof item === "string" ? item : item.text;
+                        if (!existingSet.has(w) && w.toLowerCase().startsWith(jsQuery) && w.length > 1) {
+                            list.push(makeHintItem(w, w, 'v', 'js', 'variable', function(cm, data, cur) {
+                                cm.replaceRange(cur.text, data.from, data.to);
+                            }));
+                        }
+                    });
+                }
             }
 
-            return hints;
+            if (list.length === 0) return null;
+
+            return {
+                list: list,
+                from: from,
+                to: to
+            };
         }
 
         // Initialize CodeMirror Editor
@@ -888,16 +1097,13 @@
         // Debounced Mobile Trigger Setup
         // =========================================
         editor.on("change", function(cm, change) {
-            // Ignore programmatic text modifications
             if (change.origin === "complete" || change.origin === "+delete" || change.origin === "undo" || change.origin === "paste" || change.origin === "setValue") return;
             
             var char = change.text[0];
             if (!char) return;
             
-            // Do not open suggestion box when user closes a bracket/tag manually
             if (/[\)\]}>]/.test(char)) return;
 
-            // Trigger automatically for letters, numbers, and certain symbols
             if (/[a-zA-Z0-9_$\-<.@:"']/.test(char) || char === " ") {
                 clearTimeout(cm.state.completionTimeout);
                 cm.state.completionTimeout = setTimeout(function() {
@@ -909,7 +1115,7 @@
                             closeCharacters: /[\s()\[\]{};>,]/ 
                         });
                     }
-                }, 150); // Small debounce smooths out rapid mobile typing
+                }, 150);
             }
         });
 
