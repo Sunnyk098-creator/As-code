@@ -352,7 +352,7 @@
             height: 100% !important;
             font-family: 'Courier New', Courier, monospace;
             font-size: 16px;
-            -webkit-touch-callout: none !important; /* Disables native selection toolbar on iOS/Android */
+            -webkit-touch-callout: none !important;
         }
 
         /* Custom CodeMirror Theme */
@@ -441,6 +441,7 @@
             text-align: center;
             font-family: monospace;
         }
+        .cm-hint-badge.emmet { background: #b84c00; color: #ffca85; border: 1px solid #e06d10; }
         .cm-hint-badge.tag { background: #1e3a5f; color: #569CD6; border: 1px solid #264f78; }
         .cm-hint-badge.attr { background: #3d2b1f; color: #CE9178; border: 1px solid #6e4023; }
         .cm-hint-badge.prop { background: #1f3b30; color: #4EC9B0; border: 1px solid #265c49; }
@@ -624,7 +625,7 @@
             <textarea id="code-editor"></textarea>
         </div>
 
-        <!-- Floating Context Selection Menu (Icons Only) -->
+        <!-- Floating Context Selection Menu -->
         <div class="selection-menu" id="selection-menu">
             <button onmousedown="event.preventDefault(); menuSelectAll()" title="Select All">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
@@ -641,7 +642,6 @@
             <button onmousedown="event.preventDefault(); menuComment()" title="Convert to Comment">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/></svg>
             </button>
-            <!-- NEW: Select Line Button -->
             <button onmousedown="event.preventDefault(); menuSelectLine()" title="Select Line">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><path d="M3 6h18M3 18h18"/></svg>
             </button>
@@ -741,63 +741,209 @@
             return 'htmlmixed';
         }
 
-        // Context-Aware VS Code IntelliSense Engine Data
+        // =========================================
+        // FULL EMMET EXPANSION ENGINE (HTML & CSS)
+        // =========================================
+        function expandEmmetHTML(abbr) {
+            const inputShortcuts = {
+                "input:text": '<input type="text" name="" id="">',
+                "input:email": '<input type="email" name="" id="">',
+                "input:password": '<input type="password" name="" id="">',
+                "input:submit": '<input type="submit" value="">',
+                "input:checkbox": '<input type="checkbox" name="" id="">'
+            };
+            if (inputShortcuts[abbr]) return inputShortcuts[abbr];
+
+            const selfClosingTags = new Set(["img", "input", "br", "hr", "meta", "link"]);
+
+            function parseSingleNode(str, indexNum = null) {
+                if (!str) return '';
+
+                if (indexNum !== null) {
+                    str = str.replace(/\$/g, indexNum);
+                }
+
+                let textContent = '';
+                let textMatch = str.match(/\{([^}]*)\}/);
+                if (textMatch) {
+                    textContent = textMatch[1];
+                    str = str.replace(/\{([^}]*)\}/, '');
+                }
+
+                let attrsArr = [];
+                let attrMatch = str.match(/\[([^\]]+)\]/);
+                if (attrMatch) {
+                    let rawAttrs = attrMatch[1];
+                    str = str.replace(/\[([^\]]+)\]/, '');
+                    let attrs = rawAttrs.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
+                    attrs.forEach(a => {
+                        attrsArr.push(a);
+                    });
+                }
+
+                let tagName = 'div';
+                let classes = [];
+                let id = '';
+
+                let tagMatch = str.match(/^([a-zA-Z0-9]+)/);
+                if (tagMatch) {
+                    tagName = tagMatch[1];
+                    str = str.substring(tagName.length);
+                }
+
+                let parts = str.match(/([.#][a-zA-Z0-9\-_]+)/g) || [];
+                parts.forEach(p => {
+                    if (p.startsWith('.')) classes.push(p.substring(1));
+                    else if (p.startsWith('#')) id = p.substring(1);
+                });
+
+                let attrStr = '';
+                if (id) attrStr += ` id="${id}"`;
+                if (classes.length > 0) attrStr += ` class="${classes.join(' ')}"`;
+                if (attrsArr.length > 0) attrStr += ` ${attrsArr.join(' ')}`;
+
+                if (selfClosingTags.has(tagName)) {
+                    if (tagName === 'img' && !attrStr.includes('src=')) attrStr = ` src="" alt=""${attrStr}`;
+                    return `<${tagName}${attrStr}>`;
+                } else {
+                    if (tagName === 'a' && !attrStr.includes('href=')) attrStr = ` href=""${attrStr}`;
+                    return `<${tagName}${attrStr}>${textContent}</${tagName}>`;
+                }
+            }
+
+            function splitByOp(str, op) {
+                let parts = [];
+                let cur = '';
+                let inCurly = 0, inSquare = 0;
+                for (let i = 0; i < str.length; i++) {
+                    let char = str[i];
+                    if (char === '{') inCurly++;
+                    else if (char === '}') inCurly--;
+                    else if (char === '[') inSquare++;
+                    else if (char === ']') inSquare--;
+
+                    if (char === op && inCurly === 0 && inSquare === 0) {
+                        parts.push(cur);
+                        cur = '';
+                    } else {
+                        cur += char;
+                    }
+                }
+                if (cur) parts.push(cur);
+                return parts;
+            }
+
+            function processRepeat(nodeStr) {
+                let repeatMatch = nodeStr.match(/\*(\d+)$/);
+                if (repeatMatch) {
+                    let count = parseInt(repeatMatch[1]);
+                    let baseNode = nodeStr.replace(/\*(\d+)$/, '');
+                    let out = '';
+                    for (let i = 1; i <= count; i++) {
+                        out += parseSingleNode(baseNode, i);
+                    }
+                    return out;
+                }
+                return parseSingleNode(nodeStr);
+            }
+
+            function injectChild(parentHTML, childHTML) {
+                let closeIndex = parentHTML.lastIndexOf('</');
+                if (closeIndex !== -1) {
+                    return parentHTML.substring(0, closeIndex) + childHTML + parentHTML.substring(closeIndex);
+                }
+                return parentHTML + childHTML;
+            }
+
+            function parseExpression(expr) {
+                let siblings = splitByOp(expr, '+');
+                let result = '';
+
+                siblings.forEach(sib => {
+                    let children = splitByOp(sib, '>');
+                    if (children.length > 1) {
+                        let nested = '';
+                        for (let i = children.length - 1; i >= 0; i--) {
+                            let childExpr = children[i];
+                            if (i === children.length - 1) {
+                                nested = processRepeat(childExpr);
+                            } else {
+                                let parentStr = processRepeat(childExpr);
+                                nested = injectChild(parentStr, nested);
+                            }
+                        }
+                        result += nested;
+                    } else {
+                        result += processRepeat(sib);
+                    }
+                });
+
+                return result;
+            }
+
+            try {
+                if (!abbr || abbr.trim() === '') return null;
+                // Check if string contains valid Emmet syntax
+                if (/^[a-zA-Z0-9\-_:#.>\+*${}\[\]="']+$/.test(abbr)) {
+                    return parseExpression(abbr);
+                }
+            } catch (e) {
+                return null;
+            }
+            return null;
+        }
+
+        function expandEmmetCSS(abbr) {
+            const cssMap = {
+                "d:f": "display: flex;", "df": "display: flex;",
+                "d:g": "display: grid;", "dg": "display: grid;",
+                "pos:r": "position: relative;", "posr": "position: relative;",
+                "pos:a": "position: absolute;", "posa": "position: absolute;",
+                "tac": "text-align: center;", "tar": "text-align: right;", "tal": "text-align: left;"
+            };
+            if (cssMap[abbr]) return cssMap[abbr];
+
+            let colMatch = abbr.match(/^(c|bgc)#([0-9a-fA-F]{3,6})$/);
+            if (colMatch) {
+                let prop = colMatch[1] === 'c' ? 'color' : 'background-color';
+                return `${prop}: #${colMatch[2]};`;
+            }
+
+            let propNumMatch = abbr.match(/^(m|p|mt|mb|ml|mr|pt|pb|pl|pr|w|h|fz|fw|br)(\d+)(%|px|vh|vw|em|rem)?$/);
+            if (propNumMatch) {
+                let prefix = propNumMatch[1];
+                let val = propNumMatch[2];
+                let unit = propNumMatch[3] || (prefix === 'fw' ? '' : 'px');
+
+                const propNames = {
+                    'm': 'margin', 'p': 'padding', 'mt': 'margin-top', 'mb': 'margin-bottom',
+                    'ml': 'margin-left', 'mr': 'margin-right', 'pt': 'padding-top', 'pb': 'padding-bottom',
+                    'pl': 'padding-left', 'pr': 'padding-right', 'w': 'width', 'h': 'height',
+                    'fz': 'font-size', 'fw': 'font-weight', 'br': 'border-radius'
+                };
+                let propName = propNames[prefix];
+                if (propName) {
+                    return `${propName}: ${val}${unit};`;
+                }
+            }
+
+            return null;
+        }
+
+        // Standard AutoComplete lists
         const HTML_TAG_LIST = [
-            { name: "a", selfClosing: false },
-            { name: "article", selfClosing: false },
-            { name: "aside", selfClosing: false },
-            { name: "audio", selfClosing: false, snippet: '<audio controls src=""></audio>' },
-            { name: "b", selfClosing: false },
-            { name: "body", selfClosing: false },
-            { name: "br", selfClosing: true },
-            { name: "button", selfClosing: false },
-            { name: "canvas", selfClosing: false },
-            { name: "code", selfClosing: false },
-            { name: "div", selfClosing: false },
-            { name: "em", selfClosing: false },
-            { name: "footer", selfClosing: false },
-            { name: "form", selfClosing: false },
-            { name: "h1", selfClosing: false },
-            { name: "h2", selfClosing: false },
-            { name: "h3", selfClosing: false },
-            { name: "h4", selfClosing: false },
-            { name: "h5", selfClosing: false },
-            { name: "h6", selfClosing: false },
-            { name: "head", selfClosing: false },
-            { name: "header", selfClosing: false },
-            { name: "hr", selfClosing: true },
-            { name: "html", selfClosing: false },
-            { name: "i", selfClosing: false },
-            { name: "iframe", selfClosing: false },
-            { name: "img", selfClosing: true, snippet: '<img src="" alt="">' },
-            { name: "input", selfClosing: true, snippet: '<input type="text">' },
-            { name: "label", selfClosing: false },
-            { name: "li", selfClosing: false },
-            { name: "link", selfClosing: true, snippet: '<link rel="stylesheet" href="">' },
-            { name: "main", selfClosing: false },
-            { name: "mark", selfClosing: false },
-            { name: "meta", selfClosing: true, snippet: '<meta charset="UTF-8">' },
-            { name: "nav", selfClosing: false },
-            { name: "ol", selfClosing: false },
-            { name: "option", selfClosing: false },
-            { name: "p", selfClosing: false },
-            { name: "pre", selfClosing: false },
-            { name: "script", selfClosing: false },
-            { name: "section", selfClosing: false },
-            { name: "select", selfClosing: false },
-            { name: "span", selfClosing: false },
-            { name: "strong", selfClosing: false },
-            { name: "style", selfClosing: false },
-            { name: "table", selfClosing: false },
-            { name: "tbody", selfClosing: false },
-            { name: "td", selfClosing: false },
-            { name: "textarea", selfClosing: false },
-            { name: "th", selfClosing: false },
-            { name: "thead", selfClosing: false },
-            { name: "title", selfClosing: false },
-            { name: "tr", selfClosing: false },
-            { name: "ul", selfClosing: false },
-            { name: "video", selfClosing: false, snippet: '<video controls src=""></video>' }
+            { name: "a" }, { name: "article" }, { name: "aside" }, { name: "audio", snippet: '<audio controls src=""></audio>' },
+            { name: "b" }, { name: "body" }, { name: "br", selfClosing: true }, { name: "button" }, { name: "canvas" },
+            { name: "code" }, { name: "div" }, { name: "em" }, { name: "footer" }, { name: "form" }, { name: "h1" },
+            { name: "h2" }, { name: "h3" }, { name: "h4" }, { name: "h5" }, { name: "h6" }, { name: "head" },
+            { name: "header" }, { name: "hr", selfClosing: true }, { name: "html" }, { name: "i" }, { name: "iframe" },
+            { name: "img", selfClosing: true, snippet: '<img src="" alt="">' }, { name: "input", selfClosing: true, snippet: '<input type="text">' },
+            { name: "label" }, { name: "li" }, { name: "link", selfClosing: true, snippet: '<link rel="stylesheet" href="">' },
+            { name: "main" }, { name: "mark" }, { name: "meta", selfClosing: true, snippet: '<meta charset="UTF-8">' },
+            { name: "nav" }, { name: "ol" }, { name: "option" }, { name: "p" }, { name: "pre" }, { name: "script" },
+            { name: "section" }, { name: "select" }, { name: "span" }, { name: "strong" }, { name: "style" },
+            { name: "table" }, { name: "tbody" }, { name: "td" }, { name: "textarea" }, { name: "th" }, { name: "thead" },
+            { name: "title" }, { name: "tr" }, { name: "ul" }, { name: "video", snippet: '<video controls src=""></video>' }
         ];
 
         const HTML_ATTRS_LIST = [
@@ -877,7 +1023,6 @@
             };
         }
 
-        // Updated Smart Hints Logic based on File Type
         function getSmartHints(cm, options) {
             var cursor = cm.getCursor();
             var line = cm.getLine(cursor.line);
@@ -892,8 +1037,26 @@
             var isJS = currentFileName.endsWith('.js');
             var isHTML = currentFileName.endsWith('.html');
 
+            // Extract expression before cursor
+            var exprMatch = lineTillCursor.match(/([a-zA-Z0-9\-_:#.>\+*${}\[\]="']+)$/);
+            var expr = exprMatch ? exprMatch[1] : "";
+
+            // Check Emmet Snippet match first
+            if (expr) {
+                var emmetResult = isCSS ? expandEmmetCSS(expr) : expandEmmetHTML(expr);
+                if (emmetResult) {
+                    var emmetFrom = CodeMirror.Pos(cursor.line, cursor.ch - expr.length);
+                    list.push(makeHintItem(emmetResult, expr + ' → ' + emmetResult, '⚡', 'emmet', 'Emmet', function(cm, data, cur) {
+                        cm.replaceRange(emmetResult, emmetFrom, cursor);
+                        var openTagLen = emmetResult.indexOf('><') + 1;
+                        if (openTagLen > 0) {
+                            cm.setCursor({ line: cursor.line, ch: emmetFrom.ch + openTagLen });
+                        }
+                    }));
+                }
+            }
+
             if (isCSS) {
-                // CSS FILE: Only CSS Suggestions
                 var colonIdx = lineTillCursor.lastIndexOf(":");
                 var semiIdx = lineTillCursor.lastIndexOf(";");
                 
@@ -928,7 +1091,6 @@
                     });
                 }
             } else if (isJS) {
-                // JS FILE: Only JS Suggestions
                 var jsMatch = lineTillCursor.match(/([a-zA-Z0-9\-_$]*)$/);
                 var jsQuery = jsMatch ? jsMatch[1].toLowerCase() : "";
                 from = CodeMirror.Pos(cursor.line, cursor.ch - jsQuery.length);
@@ -954,7 +1116,7 @@
                     });
                 }
             } else {
-                // HTML FILE: Combined HTML, CSS, and JS Suggestions
+                // HTML File
                 var lastOpenAngle = lineTillCursor.lastIndexOf("<");
                 var lastCloseAngle = lineTillCursor.lastIndexOf(">");
 
@@ -1019,13 +1181,11 @@
                         });
                     }
                 } else {
-                    // Plain typing inside HTML file: Show HTML Tags + CSS Properties + JS Keywords together
                     var wordMatch = lineTillCursor.match(/([a-zA-Z0-9\-_]+)$/);
                     if (wordMatch) {
                         var query = wordMatch[1].toLowerCase();
                         from = CodeMirror.Pos(cursor.line, cursor.ch - query.length);
 
-                        // 1. HTML Tags
                         HTML_TAG_LIST.forEach(function(t) {
                             if (t.name.toLowerCase().startsWith(query)) {
                                 var openTag = "<" + t.name + ">";
@@ -1047,7 +1207,6 @@
                             }
                         });
 
-                        // 2. CSS Properties
                         CSS_PROPS_LIST.forEach(function(p) {
                             if (p.toLowerCase().startsWith(query)) {
                                 list.push(makeHintItem(p, p + ": ;", '#', 'prop', 'css', function(cm, data, cur) {
@@ -1058,7 +1217,6 @@
                             }
                         });
 
-                        // 3. JS Keywords
                         JS_KEYWORDS_LIST.forEach(function(kw) {
                             if (kw.toLowerCase().startsWith(query)) {
                                 list.push(makeHintItem(kw, kw, 'ƒ', 'js', 'js', function(cm, data, cur) {
@@ -1098,27 +1256,30 @@
                     var beforeCursor = line.substring(0, cursor.ch);
 
                     // HTML Boilerplate shortcut "!"
-                    if (beforeCursor.trim() === "!") {
+                    if (beforeCursor.trim() === "!" || beforeCursor.trim() === "html:5") {
                         let boilerplate = `<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Document</title>\n</head>\n<body>\n    \n</body>\n</html>`;
                         cm.replaceRange(boilerplate, {line: cursor.line, ch: 0}, cursor);
                         cm.setCursor({line: cursor.line + 8, ch: 4});
                         return;
                     }
 
-                    // NEW: Class Expansion (e.g., div.box or .card + Enter -> <div class="box"></div>)
-                    var emmetMatch = beforeCursor.match(/(?:^|\s)([a-zA-Z0-9\-_]*)\.([a-zA-Z0-9\-_]+)$/);
-                    if (emmetMatch && (currentFileName.endsWith('.html') || cm.getOption("mode") === "htmlmixed")) {
-                        var tag = emmetMatch[1] || "div";
-                        var className = emmetMatch[2];
-                        var fullMatchStr = emmetMatch[0].trim();
-                        var startCh = cursor.ch - fullMatchStr.length;
+                    // Check for Emmet Abbreviation Expansion on Enter
+                    var exprMatch = beforeCursor.match(/([a-zA-Z0-9\-_:#.>\+*${}\[\]="']+)$/);
+                    if (exprMatch) {
+                        var expr = exprMatch[1];
+                        var isCSS = currentFileName.endsWith('.css');
+                        var expanded = isCSS ? expandEmmetCSS(expr) : expandEmmetHTML(expr);
 
-                        var expanded = `<${tag} class="${className}"></${tag}>`;
-                        cm.replaceRange(expanded, {line: cursor.line, ch: startCh}, cursor);
+                        if (expanded) {
+                            var startCh = cursor.ch - expr.length;
+                            cm.replaceRange(expanded, {line: cursor.line, ch: startCh}, cursor);
 
-                        var openTagLength = `<${tag} class="${className}">`.length;
-                        cm.setCursor({line: cursor.line, ch: startCh + openTagLength});
-                        return;
+                            var openTagLen = expanded.indexOf('><') + 1;
+                            if (openTagLen > 0) {
+                                cm.setCursor({line: cursor.line, ch: startCh + openTagLen});
+                            }
+                            return;
+                        }
                     }
 
                     cm.execCommand("newlineAndIndent"); 
@@ -1343,7 +1504,6 @@
             editor.execCommand('selectAll');
         }
 
-        // NEW: Select Line function
         function menuSelectLine() {
             var from = editor.getCursor("from");
             var to = editor.getCursor("to");
