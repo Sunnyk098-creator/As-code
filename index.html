@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mobile Code Editor</title>
 
-    <!-- CodeMirror CSS Core -->
+    <!-- CodeMirror CSS Core & Hint CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.css">
     
     <style>
         * {
@@ -354,7 +355,6 @@
 
         /* =========================================
            Custom CodeMirror VS Code Dark Theme 
-           Based on User Provided Colors
         ========================================= */
         .cm-s-custom-dark.CodeMirror { background: #1E1E1E; color: #D4D4D4; }
         .cm-s-custom-dark .CodeMirror-gutters { background: #1E1E1E; border-right: 1px solid #333; }
@@ -402,52 +402,45 @@
         .cm-searching { background-color: rgba(255, 150, 0, 0.4) !important; }
 
         /* =========================================
-           Floating Suggestions Box
+           Native AutoComplete / IntelliSense Styling
         ========================================= */
-        .suggestion-bar {
+        .CodeMirror-hints {
             position: absolute;
+            z-index: 6000;
+            overflow: hidden;
+            list-style: none;
+            margin: 0;
+            padding: 4px 0;
             background-color: #252526;
             border: 1px solid #444;
-            display: none;
-            flex-direction: column;
-            max-height: 180px;
-            overflow-y: auto;
-            z-index: 6000;
             box-shadow: 0 4px 12px rgba(0,0,0,0.6);
             border-radius: 4px;
-            min-width: 180px;
+            max-height: 250px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
         }
-        .suggestion-bar::-webkit-scrollbar {
+        .CodeMirror-hints::-webkit-scrollbar {
             width: 6px;
         }
-        .suggestion-bar::-webkit-scrollbar-thumb {
+        .CodeMirror-hints::-webkit-scrollbar-thumb {
             background: #555;
             border-radius: 4px;
         }
-        .suggestion-item {
-            background-color: transparent;
+        .CodeMirror-hint {
+            margin: 0;
+            padding: 8px 14px;
+            white-space: pre;
             color: #D4D4D4;
-            border: none;
-            border-bottom: 1px solid #333;
-            padding: 10px 12px;
-            font-size: 14px;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            text-align: left;
-            touch-action: manipulation;
+            border-bottom: 1px solid #333;
         }
-        .suggestion-item:last-child {
+        .CodeMirror-hint:last-child {
             border-bottom: none;
         }
-        .suggestion-item:active {
+        li.CodeMirror-hint-active {
             background-color: #094771;
             color: white;
-        }
-        .suggestion-icon {
-            font-weight: bold;
-            font-size: 12px;
         }
 
         /* Shortcut Toolbar */
@@ -620,8 +613,6 @@
         <!-- Editor Section -->
         <div class="editor-section">
             <textarea id="code-editor"></textarea>
-            <!-- Floating Docked Suggestion Box -->
-            <div class="suggestion-bar" id="suggestion-bar"></div>
         </div>
 
         <!-- Floating Context Selection Menu (Icons Only) -->
@@ -696,6 +687,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closetag.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/search/searchcursor.min.js"></script>
+    
+    <!-- CodeMirror Hint / IntelliSense Addons -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/xml-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/html-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/css-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/javascript-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/anyword-hint.min.js"></script>
 
     <script>
         // =========================================
@@ -718,23 +717,6 @@
         ];
         let currentFileName = "index.html";
         let targetMenuFile = "";
-
-        // Global Suggestion lists
-        const cssPropertiesList = [
-            "background", "background-color", "background-image", "background-position", 
-            "background-size", "background-repeat", "border", "border-radius", "border-color", 
-            "border-width", "border-style", "color", "display", "flex", "flex-direction", 
-            "font-family", "font-size", "font-weight", "height", "width", "margin", "margin-top", 
-            "margin-bottom", "margin-left", "margin-right", "padding", "padding-top", "padding-bottom", 
-            "padding-left", "padding-right", "position", "top", "bottom", "left", "right", 
-            "z-index", "opacity", "overflow", "overflow-x", "overflow-y", "text-align", 
-            "text-decoration", "text-transform", "align-items", "justify-content"
-        ];
-
-        const htmlKeywordsList = [
-            "div", "span", "p", "a", "h1", "h2", "h3", "h4", "h5", "h6", 
-            "button", "input", "form", "ul", "li", "ol", "img", "iframe", "style", "script", "link"
-        ];
 
         // Helper: Get Icon Image Source based on extension
         function getIconForFile(filename) {
@@ -762,6 +744,7 @@
             viewportMargin: Infinity,
             inputStyle: "contenteditable",
             extraKeys: {
+                "Ctrl-Space": "autocomplete", // Keyboard shortcut to force trigger autocomplete
                 "Enter": function(cm) {
                     var cursor = cm.getCursor();
                     var line = cm.getLine(cursor.line);
@@ -811,6 +794,28 @@
                     // Forcing standard Enter Action on Vercel/mobile keyboards
                     cm.execCommand("newlineAndIndent"); 
                 }
+            }
+        });
+
+        // =========================================
+        // Context-Aware VS Code IntelliSense Engine
+        // =========================================
+        editor.on("inputRead", function(cm, change) {
+            // Ignore spaces, enters, backspaces, etc.
+            if (change.origin !== "+input") return;
+            let char = change.text[0];
+            
+            // Trigger context-aware completion on standard characters
+            if (/[a-zA-Z0-9_$-<.@:]/.test(char)) {
+                // Short delay avoids interrupting very fast typists
+                setTimeout(function() {
+                    if (!cm.state.completionActive) {
+                        cm.showHint({
+                            completeSingle: false, // Don't auto-insert if there's only one match
+                            alignWithWord: true // Align box beautifully
+                        });
+                    }
+                }, 50);
             }
         });
 
@@ -971,121 +976,8 @@
             }
         }
 
-        // =========================================
-        // Floating Suggestion Box Logic
-        // =========================================
-        function updateFloatingSuggestions(cm) {
-            var cur = cm.getCursor();
-            var token = cm.getTokenAt(cur);
-            
-            var query = "";
-            if (token.string.trim() !== "" && /^[a-zA-Z0-9_\-]+$/.test(token.string)) {
-                query = token.string.toLowerCase();
-            }
-
-            var bar = document.getElementById("suggestion-bar");
-            if (!query) {
-                bar.style.display = "none";
-                bar.innerHTML = "";
-                return;
-            }
-
-            var matches = [];
-            cssPropertiesList.forEach(function(prop) {
-                if (prop.startsWith(query)) {
-                    matches.push({ text: prop, type: "css" });
-                }
-            });
-            htmlKeywordsList.forEach(function(tag) {
-                if (tag.startsWith(query)) {
-                    matches.push({ text: tag, type: "html" });
-                }
-            });
-
-            if (matches.length === 0) {
-                bar.style.display = "none";
-                bar.innerHTML = "";
-                return;
-            }
-
-            bar.innerHTML = "";
-            
-            // Positioning directly under the cursor
-            let coords = cm.cursorCoords(true, "page");
-            let editorRect = document.querySelector('.editor-section').getBoundingClientRect();
-            
-            let topPos = coords.bottom - editorRect.top + 5;
-            let leftPos = coords.left - editorRect.left;
-            
-            // Render Items
-            matches.forEach(function(match) {
-                var btn = document.createElement("button");
-                btn.className = "suggestion-item";
-                
-                var icon = document.createElement("span");
-                icon.className = "suggestion-icon";
-                if (match.type === "html") {
-                    icon.innerHTML = "&lt;&gt;";
-                    icon.style.color = "#569CD6"; // Updated icon colors
-                } else {
-                    icon.innerHTML = "⬢";
-                    icon.style.color = "#DCDCAA";
-                }
-
-                var label = document.createElement("span");
-                label.innerText = match.text;
-
-                btn.appendChild(icon);
-                btn.appendChild(label);
-
-                btn.onmousedown = function(e) {
-                    e.preventDefault();
-                    var from = CodeMirror.Pos(cur.line, token.start);
-                    var to = CodeMirror.Pos(cur.line, token.end);
-
-                    if (match.type === "css") {
-                        cm.replaceRange(match.text + ": ;", from, to);
-                        cm.setCursor({line: cur.line, ch: from.ch + match.text.length + 2});
-                    } else {
-                        if (match.text === 'img') {
-                            cm.replaceRange('<img src="" alt="">', from, to);
-                            cm.setCursor({line: cur.line, ch: from.ch + 10});
-                        } else if (match.text === 'input') {
-                            cm.replaceRange('<input type="text" placeholder="">', from, to);
-                            cm.setCursor({line: cur.line, ch: from.ch + 27});
-                        } else {
-                            cm.replaceRange(`<${match.text}></${match.text}>`, from, to);
-                            cm.setCursor({line: cur.line, ch: from.ch + match.text.length + 2});
-                        }
-                    }
-                    
-                    setTimeout(function() {
-                        cm.focus();
-                        bar.style.display = "none";
-                        bar.innerHTML = "";
-                    }, 50);
-                };
-                bar.appendChild(btn);
-            });
-
-            bar.style.display = "flex";
-            
-            // Adjust position if it flows off-screen
-            setTimeout(() => {
-                let barHeight = bar.offsetHeight;
-                if (topPos + barHeight > editorRect.height) {
-                    bar.style.top = (coords.top - editorRect.top - barHeight - 5) + "px";
-                } else {
-                    bar.style.top = topPos + "px";
-                }
-                bar.style.left = leftPos + "px";
-            }, 0);
-        }
-
-        // Trigger updates when cursor moves or selects text
+        // Trigger updates when cursor selects text for context menu
         editor.on("cursorActivity", function(cm) {
-            updateFloatingSuggestions(cm);
-            
             // Handle Context Menu Display when text is selected
             if (cm.somethingSelected()) {
                 let coords = cm.cursorCoords(true, "window"); // Coordinates at start of selection
