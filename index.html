@@ -34,10 +34,9 @@
             flex-direction: column;
             height: 100vh;
             width: 100vw;
-            min-width: 1000px;
+            min-width: 950px;
             background-color: #1e1e1e;
             overflow: hidden;
-            position: relative;
         }
 
         /* -----------------------------------------
@@ -95,11 +94,12 @@
         }
 
         /* -----------------------------------------
-           2. Main Workspace Layout
+           2. Main Workspace Layout (Side-by-Side Permanent)
         ----------------------------------------- */
         .workspace-body {
             flex: 1;
             display: flex;
+            flex-direction: row; /* Permanent horizontal side-by-side layout */
             overflow: hidden;
             position: relative;
             width: 100%;
@@ -145,16 +145,15 @@
             border-left: 2px solid #007acc;
         }
 
-        /* Explorer Sidebar */
+        /* Explorer Sidebar (~220px Permanent Visible) */
         .vscode-sidebar {
-            width: 260px;
+            width: 220px;
             background-color: #252526;
             display: flex;
             flex-direction: column;
             border-right: 1px solid #1e1e1e;
-            flex-shrink: 0;
+            flex-shrink: 0; /* Always visible side-by-side */
             z-index: 5;
-            transition: width 0.25s ease, opacity 0.25s ease;
         }
 
         .sidebar-header {
@@ -181,18 +180,17 @@
             background-color: #333333;
             color: #cccccc;
             border: 1px solid #444;
-            padding: 6px;
+            padding: 4px 6px;
             border-radius: 3px;
-            font-size: 12px;
+            font-size: 11px;
             cursor: pointer;
             flex: 1;
             text-align: center;
-            font-weight: 500;
         }
         .create-btn:hover { background-color: #04395e; color: white; }
 
         .section-title {
-            padding: 8px 12px;
+            padding: 6px 12px;
             font-size: 11px;
             font-weight: bold;
             color: #858585;
@@ -214,11 +212,10 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 14px;
+            padding: 8px 14px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             color: #cccccc;
-            border-bottom: 1px solid rgba(255,255,255,0.02);
         }
 
         .file-item:hover, .file-item.active {
@@ -226,12 +223,12 @@
             color: #ffffff;
         }
 
-        .file-info { display: flex; align-items: center; gap: 10px; }
-        .file-item-icon { height: 18px; width: auto; }
+        .file-info { display: flex; align-items: center; gap: 8px; }
+        .file-item-icon { height: 16px; width: auto; }
 
         .file-more-btn {
             background: none; border: none; color: #858585;
-            font-size: 16px; cursor: pointer; padding: 0 4px;
+            font-size: 14px; cursor: pointer; padding: 0 4px;
         }
 
         .sidebar-bottom-sections {
@@ -267,7 +264,7 @@
             background-color: #1e1e1e;
             position: relative;
             overflow: hidden;
-            transition: width 0.25s ease;
+            min-width: 0; /* Prevents flex child overflow */
         }
 
         /* Editor Tab Strip */
@@ -293,48 +290,37 @@
             color: #ffffff;
         }
 
-        /* Tab Action Buttons */
+        /* Tab Actions Strip (Always Visible Top Right Tools) */
         .tab-actions {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+            flex-shrink: 0;
         }
 
         .icon-action-btn {
-            background: transparent;
-            border: none;
-            color: #858585;
+            background: #333333;
+            border: 1px solid #444444;
+            color: #cccccc;
             padding: 4px 8px;
-            border-radius: 4px;
+            border-radius: 3px;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 4px;
             font-size: 12px;
+            white-space: nowrap;
         }
 
-        .icon-action-btn:hover {
+        .icon-action-btn:hover, .icon-action-btn:active {
             color: #ffffff;
-            background-color: #333333;
-        }
-
-        .icon-action-btn.zoom-toggle-btn {
-            background-color: #238636;
-            color: white;
-            padding: 4px 10px;
-            font-weight: bold;
-            border-radius: 3px;
-        }
-
-        .icon-action-btn.zoom-toggle-btn.off {
-            background-color: #444444;
-            color: #aaaaaa;
+            background-color: #04395e;
         }
 
         .icon-action-btn.run-btn-green {
             background-color: #238636;
             color: white;
-            padding: 4px 10px;
+            border: none;
             font-weight: bold;
         }
         .icon-action-btn.run-btn-green:hover { background-color: #2ea043; }
@@ -382,7 +368,7 @@
             cursor: pointer;
         }
 
-        /* Work Area & Watermark Logo */
+        /* Work Area & Image 2 Watermark Logo */
         .editor-body {
             flex: 1;
             position: relative;
@@ -583,34 +569,11 @@
             font-size: 13px; cursor: pointer; display: flex; gap: 5px;
         }
         iframe { flex: 1; width: 100%; height: 100%; border: none; }
-
-        /* -----------------------------------------
-           5. Dual Zoom Lock Focus View Rules
-        ----------------------------------------- */
-        /* Explorer Focus View (Image 1) */
-        .app-container.zoom-active.view-explorer .vscode-sidebar {
-            width: calc(100vw - 48px) !important;
-            flex: 1 !important;
-            display: flex !important;
-        }
-        .app-container.zoom-active.view-explorer .vscode-editor-area {
-            display: none !important;
-        }
-
-        /* Editor Focus View (Image 2) */
-        .app-container.zoom-active.view-editor .vscode-sidebar {
-            display: none !important;
-        }
-        .app-container.zoom-active.view-editor .vscode-editor-area {
-            width: calc(100vw - 48px) !important;
-            flex: 1 !important;
-            display: flex !important;
-        }
     </style>
 </head>
 <body>
 
-    <div class="app-container zoom-active view-explorer" id="appContainer">
+    <div class="app-container">
 
         <!-- 1. VS Code Top Navigation Bar -->
         <div class="vscode-topbar">
@@ -630,13 +593,13 @@
             </div>
         </div>
 
-        <!-- 2. Main Workspace Layout -->
+        <!-- 2. Main Workspace Layout (Side-by-Side Permanent) -->
         <div class="workspace-body">
 
             <!-- Activity Bar (Leftmost Vertical Bar) -->
             <div class="vscode-activitybar">
                 <div class="act-group-top">
-                    <div class="act-icon active" title="Explorer" onclick="switchToExplorerView()">
+                    <div class="act-icon active" title="Explorer">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
                     </div>
                     <div class="act-icon" title="Search" onclick="toggleSearchPanel()">
@@ -659,7 +622,7 @@
                 </div>
             </div>
 
-            <!-- Explorer Sidebar (Image 1 View) -->
+            <!-- Explorer Sidebar (Permanent Visible) -->
             <div class="vscode-sidebar" id="sidebarPanel">
                 <div class="sidebar-header">
                     <span>EXPLORER</span>
@@ -687,7 +650,7 @@
                 <button onclick="actionDeleteFile()" style="color:#ff6b6b;">Delete</button>
             </div>
 
-            <!-- 3. Main Editor Area (Image 2 View) -->
+            <!-- 3. Main Editor Area -->
             <div class="vscode-editor-area">
 
                 <!-- Editor Tab Bar -->
@@ -696,16 +659,13 @@
                         <img id="header-file-icon" src="html.png" alt="Icon" class="file-item-icon">
                         <span id="header-filename">index.html</span>
                     </div>
-                    <!-- Tab Actions & Requested Zoom Toggle Button -->
+                    <!-- Tab Actions Strip (Always Visible Top Right Tools) -->
                     <div class="tab-actions">
-                        <button class="icon-action-btn zoom-toggle-btn" id="zoomToggleBtn" onclick="toggleZoomLock()" title="Toggle Auto Zoom Lock">
-                            🔍 Zoom: ON
-                        </button>
-                        <button class="icon-action-btn" onclick="editor.undo()" title="Undo">↺</button>
-                        <button class="icon-action-btn" onclick="editor.redo()" title="Redo">↻</button>
-                        <button class="icon-action-btn" onclick="saveToStorage()" title="Save">💾</button>
-                        <button class="icon-action-btn" onclick="toggleSearchPanel()" title="Search">🔍</button>
-                        <button class="icon-action-btn" onclick="openColorPicker()" title="Color">🎨</button>
+                        <button class="icon-action-btn" onclick="editor.undo()" title="Undo">↺ Undo</button>
+                        <button class="icon-action-btn" onclick="editor.redo()" title="Redo">↻ Redo</button>
+                        <button class="icon-action-btn" onclick="saveToStorage()" title="Save">💾 Save</button>
+                        <button class="icon-action-btn" onclick="toggleSearchPanel()" title="Search">🔍 Find</button>
+                        <button class="icon-action-btn" onclick="openColorPicker()" title="Color">🎨 Color</button>
                         <button class="icon-action-btn run-btn-green" onclick="openOutput()" title="Run">▶ Run</button>
                     </div>
                 </div>
@@ -846,88 +806,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/anyword-hint.min.js"></script>
 
     <script>
-        // Zoom Lock & Focus State Control
-        let zoomModeEnabled = true;
-        let currentViewState = 'explorer'; // 'explorer' (Image 1) or 'editor' (Image 2)
-
-        function setViewState(state) {
-            const container = document.getElementById('appContainer');
-            currentViewState = state;
-
-            if (!zoomModeEnabled) {
-                container.classList.remove('zoom-active', 'view-explorer', 'view-editor');
-                return;
-            }
-
-            container.classList.add('zoom-active');
-            if (state === 'explorer') {
-                container.classList.add('view-explorer');
-                container.classList.remove('view-editor');
-            } else if (state === 'editor') {
-                container.classList.add('view-editor');
-                container.classList.remove('view-explorer');
-            }
-        }
-
-        function toggleZoomLock() {
-            zoomModeEnabled = !zoomModeEnabled;
-            const btn = document.getElementById('zoomToggleBtn');
-            const container = document.getElementById('appContainer');
-
-            if (zoomModeEnabled) {
-                btn.innerHTML = '🔍 Zoom: ON';
-                btn.classList.remove('off');
-                setViewState(currentViewState);
-            } else {
-                btn.innerHTML = '🔓 Zoom: OFF';
-                btn.classList.add('off');
-                container.classList.remove('zoom-active', 'view-explorer', 'view-editor');
-            }
-        }
-
-        function switchToExplorerView() {
-            if (zoomModeEnabled) {
-                setViewState('explorer');
-            }
-        }
-
-        function switchToEditorView() {
-            if (zoomModeEnabled) {
-                setViewState('editor');
-            }
-        }
-
-        // 2-Finger Touch Slide Gesture Logic
-        let touchStartX = 0;
-        let isTwoFingerTouch = false;
-
-        document.addEventListener('touchstart', function(e) {
-            if (e.touches.length === 2) {
-                isTwoFingerTouch = true;
-                touchStartX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-            } else {
-                isTwoFingerTouch = false;
-            }
-        }, { passive: true });
-
-        document.addEventListener('touchend', function(e) {
-            if (isTwoFingerTouch && zoomModeEnabled) {
-                if (e.changedTouches.length > 0) {
-                    let touchEndX = e.changedTouches[0].clientX;
-                    let diffX = touchEndX - touchStartX;
-
-                    if (diffX < -50) {
-                        // 2-Finger Slide Left -> Switch to Editor View (Image 2)
-                        setViewState('editor');
-                    } else if (diffX > 50) {
-                        // 2-Finger Slide Right -> Switch to Explorer View (Image 1)
-                        setViewState('explorer');
-                    }
-                }
-                isTwoFingerTouch = false;
-            }
-        }, { passive: true });
-
         // Global Files State with LocalStorage Persistence
         let defaultFiles = [
             { name: "index.html", content: "" },
@@ -1332,7 +1210,7 @@
             if (activeFile) activeFile.content = editor.getValue();
         }
 
-        // Tapping a File opens it AND switches to Editor Focus View (Image 2)
+        // Tapping a File opens it in Editor while keeping Sidebar visible side-by-side
         function switchFile(filename) {
             saveCurrentFileContent();
             currentFileName = filename;
@@ -1347,9 +1225,6 @@
             editor.setValue(activeFile.content);
             renderFileList();
             updateWatermark();
-
-            // Auto Switch to Editor View (Image 2)
-            switchToEditorView();
         }
 
         function renderFileList() {
@@ -1562,7 +1437,6 @@
         renderFileList();
         editor.setValue(filesList[0].content || "");
         updateWatermark();
-        setViewState('explorer'); // Starts in Explorer Focus View (Image 1)
     </script>
 </body>
 </html>
