@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mobile VS Code Editor</title>
+    <meta name="viewport" content="width=1024, initial-scale=1.0, user-scalable=yes">
+    <title>VS Code Web Desktop</title>
 
     <!-- CodeMirror CSS Core & Hint CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
@@ -28,35 +28,99 @@
             overflow: hidden;
         }
 
-        .main-container {
+        /* Full App Layout Container */
+        .app-container {
             display: flex;
+            flex-direction: column;
             height: 100vh;
             width: 100vw;
-            position: relative;
+            min-width: 1000px;
             background-color: #1e1e1e;
             overflow: hidden;
         }
 
         /* -----------------------------------------
-           1. Activity Bar (Leftmost Dark Bar)
+           1. VS Code Top Title & Navigation Bar
         ----------------------------------------- */
-        .activity-bar {
-            width: 44px;
+        .vscode-topbar {
+            height: 35px;
+            background-color: #2c2c2c;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            border-bottom: 1px solid #1e1e1e;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #858585;
+            font-size: 13px;
+        }
+
+        .nav-arrows {
+            display: flex;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .topbar-center {
+            flex: 1;
+            max-width: 480px;
+            margin: 0 20px;
+        }
+
+        .search-pill {
+            background-color: #3c3c3c;
+            border: 1px solid #454545;
+            border-radius: 6px;
+            color: #cccccc;
+            padding: 4px 16px;
+            font-size: 12px;
+            text-align: center;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #858585;
+        }
+
+        /* -----------------------------------------
+           2. Main Workspace Layout
+        ----------------------------------------- */
+        .workspace-body {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Activity Bar (Leftmost Dark Bar ~48px) */
+        .vscode-activitybar {
+            width: 48px;
             background-color: #333333;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 0;
+            padding: 10px 0;
             flex-shrink: 0;
-            z-index: 100;
             border-right: 1px solid #252526;
+            z-index: 10;
         }
 
         .act-group-top, .act-group-bottom {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 18px;
             align-items: center;
         }
 
@@ -66,8 +130,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
+            width: 38px;
+            height: 38px;
             border-radius: 4px;
             transition: color 0.2s, background 0.2s;
         }
@@ -75,49 +139,22 @@
         .act-icon.active, .act-icon:hover {
             color: #ffffff;
             background-color: rgba(255, 255, 255, 0.08);
+            border-left: 2px solid #007acc;
         }
 
-        /* -----------------------------------------
-           2. Sidebar Explorer Panel (Overlay Drawer for Mobile)
-        ----------------------------------------- */
-        .sidebar-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 150;
-            display: none;
-            backdrop-filter: blur(2px);
-        }
-
-        .sidebar-overlay.active {
-            display: block;
-        }
-
-        .sidebar-panel {
-            position: absolute;
-            top: 0;
-            left: 44px;
-            width: 250px;
-            height: 100%;
+        /* Explorer Sidebar (~220px) */
+        .vscode-sidebar {
+            width: 220px;
             background-color: #252526;
             display: flex;
             flex-direction: column;
             border-right: 1px solid #1e1e1e;
-            z-index: 200;
-            box-shadow: 4px 0 15px rgba(0,0,0,0.5);
-            transition: transform 0.25s ease;
-            transform: translateX(-120%); /* Hidden by default */
-        }
-
-        .sidebar-panel.active {
-            transform: translateX(0); /* Opened overlay */
+            flex-shrink: 0;
+            z-index: 5;
         }
 
         .sidebar-header {
-            padding: 10px 12px;
+            padding: 10px 14px;
             font-size: 11px;
             font-weight: 600;
             letter-spacing: 0.8px;
@@ -126,13 +163,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
         .create-file-btns {
             display: flex;
             gap: 4px;
-            padding: 8px 10px;
+            padding: 6px 10px;
             background-color: #2a2d2e;
             border-bottom: 1px solid #1e1e1e;
         }
@@ -141,14 +177,14 @@
             background-color: #333333;
             color: #cccccc;
             border: 1px solid #444;
-            padding: 5px 6px;
+            padding: 4px 6px;
             border-radius: 3px;
             font-size: 11px;
             cursor: pointer;
             flex: 1;
             text-align: center;
         }
-        .create-btn:active { background-color: #444; }
+        .create-btn:hover { background-color: #04395e; color: white; }
 
         .section-title {
             padding: 6px 12px;
@@ -159,6 +195,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            cursor: pointer;
         }
 
         .file-list {
@@ -172,11 +209,10 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 8px 14px;
+            padding: 6px 14px;
             cursor: pointer;
             font-size: 13px;
             color: #cccccc;
-            border-bottom: 1px solid rgba(255,255,255,0.02);
         }
 
         .file-item:hover, .file-item.active {
@@ -197,7 +233,7 @@
             background-color: #252526;
         }
 
-        /* File Action Menu */
+        /* File Action Context Popup Menu */
         .file-menu-popup {
             position: fixed;
             background: #252526;
@@ -216,112 +252,87 @@
         .file-menu-popup button:hover { background-color: #04395e; }
 
         /* -----------------------------------------
-           3. Main Editor Container (Always 100% Width)
+           3. Main Editor Area
         ----------------------------------------- */
-        .editor-container {
+        .vscode-editor-area {
             flex: 1;
             display: flex;
             flex-direction: column;
             background-color: #1e1e1e;
             position: relative;
             overflow: hidden;
-            width: 100%;
-            height: 100%;
         }
 
-        /* Top Header Bar */
-        .editor-header {
-            height: 38px;
+        /* Editor Tab Strip */
+        .editor-tabs-bar {
+            height: 35px;
             background-color: #252526;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 8px;
             border-bottom: 1px solid #1e1e1e;
-            flex-shrink: 0;
-            z-index: 10;
+            padding-right: 10px;
         }
 
         .editor-tab {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             background-color: #1e1e1e;
-            padding: 6px 10px;
-            height: 38px;
+            padding: 8px 16px;
+            height: 35px;
             border-top: 2px solid #007acc;
             font-size: 13px;
             color: #ffffff;
-            max-width: 140px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
-        .header-controls {
+        /* Desktop Action Icons Strip (Top Right) */
+        .tab-actions {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 8px;
         }
 
-        .control-btn {
-            background-color: #333333;
-            border: 1px solid #454545;
-            color: #cccccc;
-            border-radius: 3px;
+        .icon-action-btn {
+            background: transparent;
+            border: none;
+            color: #858585;
             padding: 4px 8px;
-            font-size: 11px;
+            border-radius: 4px;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 3px;
+            gap: 4px;
+            font-size: 12px;
         }
 
-        .control-btn:active {
-            background-color: #007acc; color: #ffffff;
+        .icon-action-btn:hover {
+            color: #ffffff;
+            background-color: #333333;
         }
 
-        .control-btn.run-btn {
+        .icon-action-btn.run-btn-green {
             background-color: #238636;
             color: white;
-            border: none;
-            font-weight: 600;
+            padding: 4px 10px;
+            font-weight: bold;
         }
+        .icon-action-btn.run-btn-green:hover { background-color: #2ea043; }
 
-        /* Action Toolbar */
-        .top-toolbar {
-            background-color: #252526;
-            border-bottom: 1px solid #1e1e1e;
-            display: flex;
-            align-items: center;
-            padding: 4px 8px;
-            gap: 6px;
-            flex-shrink: 0;
-        }
-        
-        .tool-btn {
-            background-color: #2d2d2d;
-            color: #cccccc;
-            border: 1px solid #3c3c3c;
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 11px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        /* Search & Replace Panel */
+        /* Search Slide-down Panel */
         .search-panel {
+            position: absolute;
+            top: 35px;
+            right: 20px;
             background-color: #252526;
-            border-bottom: 1px solid #333;
-            padding: 6px 10px;
+            border: 1px solid #454545;
+            padding: 8px;
+            border-radius: 4px;
             display: none;
             flex-direction: column;
             gap: 6px;
-            flex-shrink: 0;
-            z-index: 10;
+            z-index: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
         }
 
         .search-row {
@@ -334,11 +345,11 @@
             background-color: #3c3c3c;
             border: 1px solid #555;
             color: #cccccc;
-            padding: 4px 6px;
+            padding: 4px 8px;
             border-radius: 3px;
             font-size: 12px;
-            flex: 1;
             outline: none;
+            width: 180px;
         }
 
         .search-btn {
@@ -351,20 +362,19 @@
             cursor: pointer;
         }
 
-        /* Work Area & Watermark Logo */
+        /* Work Area & Image 2 Watermark Logo */
         .editor-body {
             flex: 1;
             position: relative;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            width: 100%;
         }
 
-        /* Image 2 Watermark Logo */
         .editor-watermark {
             position: absolute;
-            top: 50%; left: 50%;
+            top: 50%;
+            left: 50%;
             transform: translate(-50%, -50%);
             display: flex;
             flex-direction: column;
@@ -374,25 +384,22 @@
             z-index: 1;
             opacity: 0.18;
             transition: opacity 0.3s;
-            width: 100%;
-            padding: 0 20px;
         }
 
         .watermark-svg {
-            width: 150px;
-            height: 150px;
+            width: 200px;
+            height: 200px;
             fill: none;
         }
 
         .watermark-shortcuts {
-            margin-top: 20px;
+            margin-top: 25px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 12px;
             color: #cccccc;
-            font-size: 11px;
-            width: 100%;
-            max-width: 260px;
+            font-size: 13px;
+            width: 320px;
         }
 
         .shortcut-item {
@@ -403,10 +410,10 @@
         .shortcut-key {
             background-color: #2d2d2d;
             border: 1px solid #454545;
-            padding: 1px 5px;
+            padding: 2px 6px;
             border-radius: 3px;
             font-family: monospace;
-            font-size: 10px;
+            font-size: 11px;
         }
 
         /* CodeMirror Styling */
@@ -438,7 +445,7 @@
         .cm-s-custom-dark .cm-builtin, .cm-s-custom-dark .cm-type { color: #4EC9B0; }
         .cm-s-custom-dark .cm-tag { color: #569CD6; }
 
-        /* IntelliSense Popup */
+        /* AutoComplete / IntelliSense Popup */
         .CodeMirror-hints {
             position: absolute;
             z-index: 6000;
@@ -449,10 +456,10 @@
             border: 1px solid #454545;
             box-shadow: 0 4px 12px rgba(0,0,0,0.6);
             border-radius: 4px;
-            max-height: 200px;
+            max-height: 220px;
             font-family: monospace;
             font-size: 13px;
-            min-width: 200px;
+            min-width: 210px;
         }
         .CodeMirror-hint {
             padding: 6px 10px; color: #cccccc; cursor: pointer;
@@ -473,13 +480,13 @@
         .cm-hint-badge.js { background: #3c3a1f; color: #DCDCAA; border: 1px solid #635f29; }
         .cm-hint-type { font-size: 11px; opacity: 0.6; font-style: italic; }
 
-        /* Symbol Toolbar */
+        /* Symbol Shortcut Toolbar */
         .shortcut-toolbar {
             background-color: #252526;
             border-top: 1px solid #1e1e1e;
             display: flex;
-            padding: 5px 6px;
-            gap: 4px;
+            padding: 5px 8px;
+            gap: 5px;
             overflow-x: auto;
             white-space: nowrap;
             flex-shrink: 0;
@@ -490,11 +497,11 @@
             background-color: #333333;
             color: #cccccc;
             border: none;
-            padding: 6px 10px;
+            padding: 6px 12px;
             border-radius: 3px;
             font-size: 14px;
             cursor: pointer;
-            min-width: 32px;
+            min-width: 34px;
             text-align: center;
             touch-action: manipulation;
         }
@@ -514,27 +521,30 @@
         }
         .selection-menu button {
             background: transparent; border: none; color: #cccccc;
-            padding: 8px 10px; cursor: pointer; border-radius: 3px;
+            padding: 8px 12px; cursor: pointer; border-radius: 3px;
             display: flex; align-items: center;
         }
         .selection-menu button:active { background-color: #04395e; color: white; }
 
-        /* Bottom Status Bar */
-        .status-bar {
+        /* -----------------------------------------
+           4. Bottom Status Bar
+        ----------------------------------------- */
+        .vscode-statusbar {
             height: 22px;
             background-color: #007acc;
             color: #ffffff;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 8px;
+            padding: 0 12px;
             font-size: 11px;
             flex-shrink: 0;
-            z-index: 25;
+            z-index: 100;
         }
-        .status-left, .status-right { display: flex; align-items: center; gap: 10px; }
 
-        /* Output Overlay */
+        .status-left, .status-right { display: flex; align-items: center; gap: 14px; }
+
+        /* Output Screen Overlay */
         .output-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -545,7 +555,7 @@
         }
         .output-header {
             background-color: #252526;
-            display: flex; align-items: center; padding: 8px 12px;
+            display: flex; align-items: center; padding: 8px 14px;
             border-bottom: 1px solid #333;
         }
         .output-header .close-btn {
@@ -557,204 +567,207 @@
 </head>
 <body>
 
-    <div class="main-container" id="mainContainer">
+    <div class="app-container">
 
-        <!-- 1. Activity Bar -->
-        <div class="activity-bar">
-            <div class="act-group-top">
-                <div class="act-icon active" title="Explorer" onclick="toggleSidebar()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-                </div>
-                <div class="act-icon" title="Search" onclick="toggleSearchPanel()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                </div>
-                <div class="act-icon" title="Source Control">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 9v12"/><path d="M18 15V9a9 9 0 0 0-9-9"/></svg>
-                </div>
-                <div class="act-icon" title="Color Picker" onclick="openColorPicker()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+        <!-- 1. VS Code Top Navigation Bar -->
+        <div class="vscode-topbar">
+            <div class="topbar-left">
+                <div class="nav-arrows">
+                    <span>←</span>
+                    <span>→</span>
                 </div>
             </div>
-            <div class="act-group-bottom">
-                <div class="act-icon" title="Account">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </div>
+            <div class="topbar-center">
+                <div class="search-pill">Workspace</div>
+            </div>
+            <div class="topbar-right">
+                <span style="cursor:pointer;" title="Split Editor">◫</span>
+                <span style="cursor:pointer;" title="Toggle Panel">⊟</span>
+                <span style="cursor:pointer;" title="Toggle Sidebar">▧</span>
             </div>
         </div>
 
-        <!-- Sidebar Overlay & Panel -->
-        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
-        <div class="sidebar-panel" id="sidebarPanel">
-            <div class="sidebar-header">
-                <span>EXPLORER</span>
-                <span style="cursor:pointer;" onclick="closeSidebar()">✕</span>
-            </div>
-            <div class="create-file-btns">
-                <button class="create-btn" onclick="createNewFile('html')">+ .html</button>
-                <button class="create-btn" onclick="createNewFile('css')">+ .css</button>
-                <button class="create-btn" onclick="createNewFile('js')">+ .js</button>
-            </div>
-            <div class="section-title">
-                <span>❯ WORKSPACE</span>
-            </div>
-            <div class="file-list" id="file-list"></div>
-            <div class="sidebar-bottom-sections">
-                <div class="section-title">❯ OUTLINE</div>
-                <div class="section-title">❯ TIMELINE</div>
-            </div>
-        </div>
+        <!-- 2. Main Workspace Layout -->
+        <div class="workspace-body">
 
-        <!-- File Action Context Menu -->
-        <div class="file-menu-popup" id="fileMenuPopup">
-            <button onclick="actionRenameFile()">Rename</button>
-            <button onclick="actionDuplicateFile()">Duplicate</button>
-            <button onclick="actionDeleteFile()" style="color:#ff6b6b;">Delete</button>
-        </div>
-
-        <!-- 3. Main Editor Container -->
-        <div class="editor-container" id="editorContainer">
-
-            <!-- Top Header Bar -->
-            <div class="editor-header">
-                <div class="editor-tab">
-                    <img id="header-file-icon" src="html.png" alt="Icon" class="file-item-icon">
-                    <span id="header-filename">index.html</span>
+            <!-- Activity Bar (Leftmost Vertical Bar) -->
+            <div class="vscode-activitybar">
+                <div class="act-group-top">
+                    <div class="act-icon active" title="Explorer">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                    </div>
+                    <div class="act-icon" title="Search" onclick="toggleSearchPanel()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    </div>
+                    <div class="act-icon" title="Source Control">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 9v12"/><path d="M18 15V9a9 9 0 0 0-9-9"/></svg>
+                    </div>
+                    <div class="act-icon" title="Color Picker" onclick="openColorPicker()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                    </div>
                 </div>
-                <!-- Header Controls -->
-                <div class="header-controls">
-                    <button class="control-btn" onclick="editor.undo()" title="Undo">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
-                        Undo
-                    </button>
-                    <button class="control-btn" onclick="editor.redo()" title="Redo">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
-                        Redo
-                    </button>
-                    <button class="control-btn" onclick="saveToStorage()" title="Save">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                        Save
-                    </button>
-                    <button class="control-btn run-btn" onclick="openOutput()" title="Run">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3v18l15-9z"/></svg>
-                        Run
-                    </button>
+                <div class="act-group-bottom">
+                    <div class="act-icon" title="Account">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                    <div class="act-icon" title="Settings">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </div>
                 </div>
             </div>
 
-            <!-- Action Toolbar -->
-            <div class="top-toolbar">
-                <button class="tool-btn" onclick="toggleSearchPanel()">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    Find / Replace
-                </button>
-                <button class="tool-btn" onclick="openColorPicker()">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-                    Color
-                </button>
-                <input type="color" id="nativeColorPicker" style="display: none;" onchange="insertHexColor(this.value)">
-            </div>
-
-            <!-- Search Panel -->
-            <div class="search-panel" id="search-panel">
-                <div class="search-row">
-                    <input type="text" id="search-input" class="search-input" placeholder="Search code..." oninput="doSearch()">
-                    <button class="search-btn" onclick="findPrev()">▲</button>
-                    <button class="search-btn" onclick="findNext()">▼</button>
-                    <button class="search-btn" onclick="toggleSearchPanel()">✕</button>
+            <!-- Explorer Sidebar -->
+            <div class="vscode-sidebar" id="sidebarPanel">
+                <div class="sidebar-header">
+                    <span>EXPLORER</span>
+                    <span>...</span>
                 </div>
-                <div class="search-row">
-                    <input type="text" id="replace-input" class="search-input" placeholder="Replace with...">
-                    <button class="search-btn" onclick="doReplace()">Replace</button>
-                    <button class="search-btn" onclick="doReplaceAll()">All</button>
+                <div class="create-file-btns">
+                    <button class="create-btn" onclick="createNewFile('html')">+ .html</button>
+                    <button class="create-btn" onclick="createNewFile('css')">+ .css</button>
+                    <button class="create-btn" onclick="createNewFile('js')">+ .js</button>
+                </div>
+                <div class="section-title">
+                    <span>❯ WORKSPACE</span>
+                </div>
+                <div class="file-list" id="file-list"></div>
+                <div class="sidebar-bottom-sections">
+                    <div class="section-title">❯ OUTLINE</div>
+                    <div class="section-title">❯ TIMELINE</div>
                 </div>
             </div>
 
-            <!-- Work Area with Watermark Logo -->
-            <div class="editor-body" id="editorBody">
-                <div class="editor-watermark" id="editorWatermark">
-                    <svg class="watermark-svg" viewBox="0 0 500 500">
-                        <path d="M110,390 L260,110 L300,110 L190,390 Z" fill="#666666" />
-                        <path d="M260,110 C360,110 430,170 430,230 C430,300 320,310 240,330 C160,350 110,380 110,430 L110,390 C110,310 210,300 290,280 C370,260 410,230 410,180 C410,130 330,110 260,110 Z" fill="#777777" />
-                        <path d="M150,320 C230,280 340,230 450,220 C400,340 320,410 240,410 C180,410 140,380 150,320 Z" fill="#555555" />
-                    </svg>
-                    <div class="watermark-shortcuts">
-                        <div class="shortcut-item">
-                            <span>Show All Commands</span>
-                            <span class="shortcut-key">Ctrl + Shift + P</span>
-                        </div>
-                        <div class="shortcut-item">
-                            <span>Find in Files</span>
-                            <span class="shortcut-key">Ctrl + Shift + F</span>
-                        </div>
-                        <div class="shortcut-item">
-                            <span>Open Settings</span>
-                            <span class="shortcut-key">Ctrl + .</span>
-                        </div>
+            <!-- File Action Context Popup -->
+            <div class="file-menu-popup" id="fileMenuPopup">
+                <button onclick="actionRenameFile()">Rename</button>
+                <button onclick="actionDuplicateFile()">Duplicate</button>
+                <button onclick="actionDeleteFile()" style="color:#ff6b6b;">Delete</button>
+            </div>
+
+            <!-- 3. Main Editor Area -->
+            <div class="vscode-editor-area">
+
+                <!-- Editor Tab Bar -->
+                <div class="editor-tabs-bar">
+                    <div class="editor-tab">
+                        <img id="header-file-icon" src="html.png" alt="Icon" class="file-item-icon">
+                        <span id="header-filename">index.html</span>
+                    </div>
+                    <!-- Tab Right Desktop Action Buttons -->
+                    <div class="tab-actions">
+                        <button class="icon-action-btn" onclick="editor.undo()" title="Undo">↺</button>
+                        <button class="icon-action-btn" onclick="editor.redo()" title="Redo">↻</button>
+                        <button class="icon-action-btn" onclick="saveToStorage()" title="Save">💾</button>
+                        <button class="icon-action-btn" onclick="toggleSearchPanel()" title="Search">🔍</button>
+                        <button class="icon-action-btn" onclick="openColorPicker()" title="Color">🎨</button>
+                        <button class="icon-action-btn run-btn-green" onclick="openOutput()" title="Run">▶ Run</button>
                     </div>
                 </div>
 
-                <textarea id="code-editor"></textarea>
-            </div>
-
-            <!-- Floating Context Menu -->
-            <div class="selection-menu" id="selection-menu">
-                <button onmousedown="event.preventDefault(); menuSelectAll()" title="Select All">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-                </button>
-                <button onmousedown="event.preventDefault(); menuCopy()" title="Copy">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                </button>
-                <button onmousedown="event.preventDefault(); menuCut()" title="Cut">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
-                </button>
-                <button onmousedown="event.preventDefault(); menuPaste()" title="Paste">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
-                </button>
-                <button onmousedown="event.preventDefault(); menuComment()" title="Comment">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                </button>
-                <button onmousedown="event.preventDefault(); menuSelectLine()" title="Select Line">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><path d="M3 6h18M3 18h18"/></svg>
-                </button>
-            </div>
-
-            <!-- Symbol Toolbar -->
-            <div class="shortcut-toolbar" id="toolbar">
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, 'Tab')">Tab</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '<')">&lt;</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '>')">&gt;</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '/')">/</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '{')">{</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '}')">}</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '[')">[</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, ']')">]</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '(')">(</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, ')')">)</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '=')">=</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '&quot;')">"</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '\'')">'</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, ';')">;</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, ':')">:</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '.')">.</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, ',')">,</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '!')">!</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '?')">?</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '+')">+</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '-')">-</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '*')">*</button>
-                <button class="shortcut-btn" onmousedown="insertSymbol(event, '#')">#</button>
-            </div>
-
-            <!-- Bottom Status Bar -->
-            <div class="status-bar">
-                <div class="status-left">
-                    <span>⊗ 0  ⚠ 0</span>
-                    <span>UTF-8</span>
+                <!-- Search Slide-down Panel -->
+                <div class="search-panel" id="search-panel">
+                    <div class="search-row">
+                        <input type="text" id="search-input" class="search-input" placeholder="Search code..." oninput="doSearch()">
+                        <button class="search-btn" onclick="findPrev()">▲</button>
+                        <button class="search-btn" onclick="findNext()">▼</button>
+                        <button class="search-btn" onclick="toggleSearchPanel()">✕</button>
+                    </div>
+                    <div class="search-row">
+                        <input type="text" id="replace-input" class="search-input" placeholder="Replace with...">
+                        <button class="search-btn" onclick="doReplace()">Replace</button>
+                        <button class="search-btn" onclick="doReplaceAll()">All</button>
+                    </div>
                 </div>
-                <div class="status-right">
-                    <span id="status-mode">HTML</span>
-                    <span>Layout: AS</span>
+
+                <!-- Editor Work Area with Image 2 Watermark Logo -->
+                <div class="editor-body" id="editorBody">
+                    <div class="editor-watermark" id="editorWatermark">
+                        <svg class="watermark-svg" viewBox="0 0 500 500">
+                            <path d="M110,390 L260,110 L300,110 L190,390 Z" fill="#666666" />
+                            <path d="M260,110 C360,110 430,170 430,230 C430,300 320,310 240,330 C160,350 110,380 110,430 L110,390 C110,310 210,300 290,280 C370,260 410,230 410,180 C410,130 330,110 260,110 Z" fill="#777777" />
+                            <path d="M150,320 C230,280 340,230 450,220 C400,340 320,410 240,410 C180,410 140,380 150,320 Z" fill="#555555" />
+                        </svg>
+                        <div class="watermark-shortcuts">
+                            <div class="shortcut-item">
+                                <span>Show All Commands</span>
+                                <span class="shortcut-key">Ctrl + Shift + P</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <span>Find in Files</span>
+                                <span class="shortcut-key">Ctrl + Shift + F</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <span>Open Settings</span>
+                                <span class="shortcut-key">Ctrl + .</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <textarea id="code-editor"></textarea>
+                    <input type="color" id="nativeColorPicker" style="display: none;" onchange="insertHexColor(this.value)">
                 </div>
+
+                <!-- Floating Context Selection Menu -->
+                <div class="selection-menu" id="selection-menu">
+                    <button onmousedown="event.preventDefault(); menuSelectAll()" title="Select All">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                    </button>
+                    <button onmousedown="event.preventDefault(); menuCopy()" title="Copy">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
+                    <button onmousedown="event.preventDefault(); menuCut()" title="Cut">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+                    </button>
+                    <button onmousedown="event.preventDefault(); menuPaste()" title="Paste">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+                    </button>
+                    <button onmousedown="event.preventDefault(); menuComment()" title="Comment">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </button>
+                    <button onmousedown="event.preventDefault(); menuSelectLine()" title="Select Line">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><path d="M3 6h18M3 18h18"/></svg>
+                    </button>
+                </div>
+
+                <!-- Symbol Shortcut Toolbar -->
+                <div class="shortcut-toolbar" id="toolbar">
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, 'Tab')">Tab</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '<')">&lt;</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '>')">&gt;</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '/')">/</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '{')">{</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '}')">}</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '[')">[</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, ']')">]</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '(')">(</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, ')')">)</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '=')">=</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '&quot;')">"</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '\'')">'</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, ';')">;</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, ':')">:</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '.')">.</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, ',')">,</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '!')">!</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '?')">?</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '+')">+</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '-')">-</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '*')">*</button>
+                    <button class="shortcut-btn" onmousedown="insertSymbol(event, '#')">#</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 4. Bottom Status Bar -->
+        <div class="vscode-statusbar">
+            <div class="status-left">
+                <span>⊗ 0  ⚠ 0</span>
+                <span>UTF-8</span>
+            </div>
+            <div class="status-right">
+                <span id="status-mode">HTML</span>
+                <span>Layout: AS</span>
             </div>
         </div>
 
@@ -814,23 +827,6 @@
             if (filename.endsWith('.css')) return 'css';
             if (filename.endsWith('.js')) return 'javascript';
             return 'htmlmixed';
-        }
-
-        // Toggle Sidebar Drawer
-        function toggleSidebar() {
-            const panel = document.getElementById('sidebarPanel');
-            const overlay = document.getElementById('sidebarOverlay');
-            if (panel.classList.contains('active')) {
-                closeSidebar();
-            } else {
-                panel.classList.add('active');
-                overlay.classList.add('active');
-            }
-        }
-
-        function closeSidebar() {
-            document.getElementById('sidebarPanel').classList.remove('active');
-            document.getElementById('sidebarOverlay').classList.remove('active');
         }
 
         // Emmet Engine Functionality
@@ -1178,9 +1174,7 @@
 
         editor.on("change", updateWatermark);
 
-        // Auto close sidebar when tapping editor body
         editor.getWrapperElement().addEventListener('click', function() {
-            closeSidebar();
             if(document.getElementById("search-panel").style.display === "flex") {
                 document.getElementById("search-panel").style.display = "none";
             }
@@ -1224,7 +1218,6 @@
             editor.setValue(activeFile.content);
             renderFileList();
             updateWatermark();
-            closeSidebar();
         }
 
         function renderFileList() {
@@ -1367,7 +1360,6 @@
         // Search Panel
         let searchCursor = null;
         function toggleSearchPanel() {
-            closeSidebar();
             var panel = document.getElementById("search-panel");
             panel.style.display = panel.style.display === "flex" ? "none" : "flex";
         }
