@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>AS Code</title>
+    <meta name="viewport" content="width=1024, initial-scale=1.0, user-scalable=yes">
+    <title>VS Code Web Desktop</title>
 
     <!-- CodeMirror CSS Core & Hint CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
@@ -26,17 +26,15 @@
             height: 100%;
             width: 100%;
             overflow: hidden;
-            /* Prevents horizontal pull-to-refresh / swipe navigation on mobile */
-            overscroll-behavior-x: none;
         }
 
-        /* App Container - using dvh to ensure it resizes above mobile keyboard */
+        /* App Container - Forced Desktop Width */
         .app-container {
             display: flex;
             flex-direction: column;
             height: 100vh;
-            height: 100dvh; 
             width: 100vw;
+            min-width: 950px; /* Forces desktop scaling on mobile */
             background-color: #1e1e1e;
             overflow: hidden;
             position: relative;
@@ -221,8 +219,8 @@
             overflow-x: hidden;
             display: flex;
             flex-direction: column;
-            /* Lock 1 finger scroll to strictly vertical */
-            touch-action: pan-y;
+            /* Lock 1 finger scroll to vertical to avoid accidental horizontal pan */
+            touch-action: pan-y pinch-zoom;
         }
 
         .file-item {
@@ -287,17 +285,14 @@
 
         /* Editor Tab Bar */
         .editor-tabs-bar {
-            height: 40px;
+            height: 35px;
             background-color: #252526;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid #1e1e1e;
             padding-right: 10px;
-            overflow-x: auto;
-            white-space: nowrap;
         }
-        .editor-tabs-bar::-webkit-scrollbar { display: none; }
 
         .editor-tab {
             display: flex;
@@ -305,14 +300,14 @@
             gap: 8px;
             background-color: #1e1e1e;
             padding: 8px 16px;
-            height: 40px;
+            height: 35px;
             border-top: 2px solid #007acc;
             font-size: 13px;
             color: #ffffff;
             flex-shrink: 0;
         }
 
-        /* Tab Actions Strip */
+        /* Tab Actions Strip (SVGs replaced emojis) */
         .tab-actions {
             display: flex;
             align-items: center;
@@ -351,7 +346,7 @@
         /* Search Slide-down Panel */
         .search-panel {
             position: absolute;
-            top: 40px;
+            top: 35px;
             right: 20px;
             background-color: #252526;
             border: 1px solid #454545;
@@ -456,7 +451,7 @@
             z-index: 2;
             -webkit-touch-callout: none !important;
             user-select: text !important;
-            /* Allow vertical scrolling & pinch-zoom strictly. Disables horizontal page swiping. */
+            /* Allow vertical scrolling & pinch-zoom strictly */
             touch-action: pan-y pinch-zoom !important;
         }
 
@@ -511,7 +506,7 @@
         .cm-hint-badge.js { background: #3a3821; color: #dcdcaa; border: 1px solid #54512c; }
         .cm-hint-type { font-size: 11px; opacity: 0.6; font-style: italic; }
 
-        /* Symbol Shortcut Toolbar - Fixed right above the statusbar for dynamic keyboard */
+        /* Symbol Shortcut Toolbar */
         .shortcut-toolbar {
             background-color: #252526;
             border-top: 1px solid #1e1e1e;
@@ -522,7 +517,6 @@
             white-space: nowrap;
             flex-shrink: 0;
             z-index: 100;
-            touch-action: pan-x; /* Allow horizontal sliding in toolbar */
         }
         .shortcut-toolbar::-webkit-scrollbar { display: none; }
         .shortcut-btn {
@@ -596,36 +590,15 @@
         }
         iframe { flex: 1; width: 100%; height: 100%; border: none; }
 
-        /* Zoom Focus States & Mobile Media Queries */
-        @media (max-width: 768px) {
-            .vscode-sidebar {
-                width: calc(100% - 48px); /* File explorer takes full remaining width */
-            }
-            .vscode-editor-area {
-                display: none; /* Hide editor on mobile until file clicked */
-            }
-            
-            /* When zoom is active, hide sidebar, show editor full width */
-            .app-container.view-editor-zoom .vscode-sidebar {
-                display: none !important;
-            }
-            .app-container.view-editor-zoom .vscode-editor-area {
-                display: flex !important;
-                width: 100% !important;
-            }
+        /* Original Click-to-Zoom Focus State for Editor */
+        .app-container.view-editor-zoom .vscode-sidebar {
+            width: 0 !important;
+            overflow: hidden !important;
+            border: none !important;
         }
-
-        /* Desktop specific zoom (fallback) */
-        @media (min-width: 769px) {
-            .app-container.view-editor-zoom .vscode-sidebar {
-                width: 0 !important;
-                overflow: hidden !important;
-                border: none !important;
-            }
-            .app-container.view-editor-zoom .vscode-editor-area {
-                flex: 1 !important;
-                width: 100% !important;
-            }
+        .app-container.view-editor-zoom .vscode-editor-area {
+            flex: 1 !important;
+            width: 100% !important;
         }
     </style>
 </head>
@@ -644,7 +617,7 @@
                 <div class="search-pill">Workspace</div>
             </div>
             <div class="topbar-right">
-                <span onclick="toggleEditorZoom()" title="Toggle View">
+                <span onclick="toggleEditorZoom()" title="Toggle Zoom">
                     <svg width="16" height="16" viewBox="0 0 16 16"><path fill="currentColor" d="M14 2v12H2V2h12zm-1 1H3v10h10V3z"/></svg>
                 </span>
             </div>
@@ -692,6 +665,10 @@
                     <span>❯ WORKSPACE</span>
                 </div>
                 <div class="file-list" id="file-list"></div>
+                <div class="sidebar-bottom-sections">
+                    <div class="section-title">❯ OUTLINE</div>
+                    <div class="section-title">❯ TIMELINE</div>
+                </div>
             </div>
 
             <!-- File Action Context Popup -->
@@ -1114,7 +1091,7 @@
                     elt.innerHTML = "";
                     var leftDiv = document.createElement("div"); leftDiv.className = "cm-hint-left";
                     var badge = document.createElement("span"); badge.className = "cm-hint-badge " + badgeClass; 
-                    badge.innerHTML = svgIcon; // Render the actual SVG Icon
+                    badge.innerHTML = svgIcon;
                     var txt = document.createElement("span"); txt.textContent = cur.displayText || cur.text;
                     leftDiv.appendChild(badge); leftDiv.appendChild(txt);
                     var typeSpan = document.createElement("span"); typeSpan.className = "cm-hint-type"; typeSpan.textContent = typeLabel;
@@ -1310,7 +1287,6 @@
             renderFileList();
             updateWatermark();
             
-            // Ensures switching fully opens the editor view when in mobile sizes
             toggleEditorZoom(true); 
         }
 
