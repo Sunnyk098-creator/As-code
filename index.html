@@ -149,16 +149,24 @@
             width: 240px; background-color: var(--bg-sidebar); display: flex; flex-direction: column; border-right: 1px solid var(--border); flex-shrink: 0; z-index: 100; transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), width 0.3s;
         }
         .sidebar-header { padding: 12px 16px; font-size: 11px; font-weight: 600; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
-        .create-file-btns { display: flex; gap: 4px; padding: 8px 10px; background-color: var(--bg-hover); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-        .create-btn { background-color: var(--bg-activity); color: var(--text-main); border: 1px solid var(--border); padding: 5px 0; border-radius: 4px; font-size: 11px; font-weight: 500; cursor: pointer; flex: 1; min-width: 45px; text-align: center; transition: background 0.2s; }
-        .create-btn:hover, .create-btn:active { background-color: var(--accent); color: white; border-color: var(--accent); }
-        .section-title { padding: 8px 16px; font-size: 11px; font-weight: 700; color: var(--text-muted); background: #1a1a1a; display: flex; align-items: center; gap: 6px; cursor: pointer; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-        .file-list { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; touch-action: pan-y; }
+        
+        .section-title { padding: 4px 12px; font-size: 11px; font-weight: 700; color: var(--text-muted); background: transparent; display: flex; align-items: center; justify-content: space-between; cursor: pointer; border-bottom: 1px solid transparent; }
+        .section-title-left { display: flex; align-items: center; gap: 4px; }
+        .workspace-actions { display: flex; align-items: center; gap: 2px; }
+        .workspace-actions button { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .workspace-actions button:hover { background: rgba(255,255,255,0.1); color: var(--text-light); }
+        .workspace-actions svg { width: 14px; height: 14px; }
+
+        .file-list { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; touch-action: pan-y; padding-bottom: 20px; }
         .file-list::-webkit-scrollbar { width: 6px; } .file-list::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
-        .file-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; cursor: pointer; font-size: 13px; color: var(--text-main); transition: background 0.15s; }
+        .file-item { display: flex; align-items: center; justify-content: space-between; padding: 4px 14px 4px 24px; cursor: pointer; font-size: 13px; color: var(--text-main); transition: background 0.15s; }
         .file-item:hover, .file-item.active { background-color: var(--bg-active); color: var(--text-light); }
-        .file-info { display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-item.folder-item { padding-left: 10px; font-weight: 500; }
+        .file-info { display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .file-item-icon { height: 16px; width: 16px; flex-shrink: 0; }
+        
+        .inline-input-wrapper { padding: 4px 14px 4px 24px; }
+        .inline-file-input { background: var(--bg-editor); border: 1px solid var(--accent); color: var(--text-light); padding: 4px 6px; font-size: 13px; outline: none; width: 100%; border-radius: 3px; }
         .file-more-btn { background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; padding: 0 4px; border-radius: 3px; }
         .file-more-btn:hover { background-color: rgba(255,255,255,0.1); color: white; }
 
@@ -189,13 +197,13 @@
         .icon-action-btn.run-btn-green { background-color: #238636; color: white; border: none; font-weight: 600; }
         .icon-action-btn.run-btn-green:hover { background-color: #2ea043; }
 
-        /* FLOATING SEARCH PANEL (FIXED FOR MOBILE) */
+        /* FLOATING SEARCH PANEL */
         .search-panel { 
             position: absolute; top: 10px; right: 10px; 
             background-color: #252526; border: 1px solid #454545; padding: 10px 12px; 
             border-radius: 8px; display: none; flex-direction: column; gap: 8px; z-index: 2500; 
             box-shadow: 0 8px 24px rgba(0,0,0,0.7); 
-            width: 320px; max-width: calc(100vw - 20px); /* PREVENTS OVERFLOW */
+            width: 320px; max-width: calc(100vw - 20px);
             animation: fadeIn 0.2s ease;
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
@@ -207,7 +215,6 @@
         .search-btn:hover { background-color: var(--accent); color: white; border-color: var(--accent); }
         .search-count { font-size: 11px; color: var(--text-muted); min-width: 45px; text-align: center; font-family: monospace; }
 
-        /* HIGHLIGHT CLASS FOR SEARCH RESULTS */
         .cm-search-highlight { background-color: rgba(255, 215, 0, 0.4); border-bottom: 2px solid #ffd700; }
 
         /* Editor Body */
@@ -306,8 +313,8 @@
 </head>
 <body>
     
-    <!-- Local File Access Modal (Requires user interaction to open file picker) -->
-    <div class="settings-modal" id="workspaceModal" style="display: flex;">
+    <!-- Local File Access Modal (Hidden by default so it doesn't prompt on refresh) -->
+    <div class="settings-modal" id="workspaceModal" style="display: none;">
         <div class="settings-content" style="text-align: center;">
             <h3 style="margin-bottom: 10px;">Select Workspace Folder</h3>
             <p style="margin-bottom: 20px; font-size: 13px; color: var(--text-muted);">Please select a local folder to read and save your files directly to your device.</p>
@@ -336,7 +343,6 @@
                 <button class="top-icon-btn" onclick="openColorPickerModal()" title="Colour Picker">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10c0 2.5-1 4.5-3 4.5h-1.9c-.7 0-1.1.6-1 1.3.3 1.5-1 2.2-2.1 2.2H12z"/><circle cx="7.5" cy="9.5" r="1.5"/><circle cx="12" cy="6.5" r="1.5"/><circle cx="16.5" cy="9.5" r="1.5"/></svg>
                 </button>
-                <!-- NEW SVG EXTENSION ICON -->
                 <button class="top-icon-btn" onclick="openVapidModal()" title="Extensions & Addons">
                     <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M180-180h560v-192l41-19q19-8 30.5-27t11.5-40q0-21.43-11.5-39.72Q800-516 781-525l-41-19v-196H539l-9-51q-5-27-24.67-45.5-19.68-18.5-45.91-18.5Q432-855 412-836.5T387-791l-9 51H181v110q55 20 89 66.78t34 105.5q0 59.72-34 107.22T180-287v107Zm11 60q-29 0-50-21t-21-51v-139q52-3 88-39t36-88q0-52-36-88.5t-87-38.4V-729q0-30 20.5-50.5T192-800h136q6.63-48.88 43.58-81.94Q408.53-915 458.74-915q49.26 0 86.45 33.06Q582.37-848.88 590-800h139q30 0 50.5 20.5T800-729v147q38 18 60.5 49.5T883-458q0 43-22.5 75T800-334v142q0 30-20.5 51T729-120H191Zm311-338Z"/></svg>
                 </button>
@@ -413,7 +419,6 @@
                     <div class="act-icon active" title="Explorer" onclick="toggleSidebar()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg></div>
                     <div class="act-icon" title="Search" onclick="toggleSearchPanel(); document.getElementById('appContainer').classList.remove('show-sidebar');"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
                     <div class="act-icon" title="Colour Picker" onclick="openColorPickerModal()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10c0 2.5-1 4.5-3 4.5h-1.9c-.7 0-1.1.6-1 1.3.3 1.5-1 2.2-2.1 2.2H12z"/><circle cx="7.5" cy="9.5" r="1.5"/><circle cx="12" cy="6.5" r="1.5"/><circle cx="16.5" cy="9.5" r="1.5"/></svg></div>
-                    <!-- NEW SVG EXTENSION ICON -->
                     <div class="act-icon" title="Extensions & Vapid" onclick="openVapidModal()">
                         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M180-180h560v-192l41-19q19-8 30.5-27t11.5-40q0-21.43-11.5-39.72Q800-516 781-525l-41-19v-196H539l-9-51q-5-27-24.67-45.5-19.68-18.5-45.91-18.5Q432-855 412-836.5T387-791l-9 51H181v110q55 20 89 66.78t34 105.5q0 59.72-34 107.22T180-287v107Zm11 60q-29 0-50-21t-21-51v-139q52-3 88-39t36-88q0-52-36-88.5t-87-38.4V-729q0-30 20.5-50.5T192-800h136q6.63-48.88 43.58-81.94Q408.53-915 458.74-915q49.26 0 86.45 33.06Q582.37-848.88 590-800h139q30 0 50.5 20.5T800-729v147q38 18 60.5 49.5T883-458q0 43-22.5 75T800-334v142q0 30-20.5 51T729-120H191Zm311-338Z"/></svg>
                     </div>
@@ -424,13 +429,24 @@
             <!-- Explorer Sidebar -->
             <div class="vscode-sidebar" id="sidebarPanel">
                 <div class="sidebar-header"><span>EXPLORER</span><span>...</span></div>
-                <div class="create-file-btns">
-                    <button class="create-btn" onclick="createNewFile('html')">+ .html</button>
-                    <button class="create-btn" onclick="createNewFile('css')">+ .css</button>
-                    <button class="create-btn" onclick="createNewFile('js')">+ .js</button>
-                    <button class="create-btn" onclick="createNewFolder()">+ Folder</button>
+                
+                <div class="section-title">
+                    <div class="section-title-left">
+                        <svg width="12" height="12" viewBox="0 0 16 16"><path fill="currentColor" d="M11 8l-6 4V4l6 4z"/></svg>
+                        <span>WORKSPACE</span>
+                    </div>
+                    <div class="workspace-actions">
+                        <button onclick="showInlineInput('file')" title="New File">
+                            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M9.5 1.1l3.4 3.5.1.4v9.5h-10v-13h6.1l.4-.4zM12 5h-2.5v-2.5l2.5 2.5zm-3 0V2H4v12h8V6H8.5l-.5-.1V5zM8 8H7v2H5v1h2v2h1v-2h2v-1H8V8z"/></svg>
+                        </button>
+                        <button onclick="showInlineInput('folder')" title="New Folder">
+                            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M14.5 4H7.7l-1.4-1.5-.4-.5H2.5v11h12v-9h-10zm-10 8V3h3l1.4 1.5.4.5h6.7v7h-11zM8 7H7v2H5v1h2v2h1v-2h2v-1H8V7z"/></svg>
+                        </button>
+                        <button onclick="renderFileList()" title="Refresh Explorer">
+                            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M12.6 3.4L11 5h4V1l-1.6 1.6C12.1 1 10.2 0 8 0 3.6 0 0 3.6 0 8s3.6 8 8 8c3.2 0 6-1.9 7.3-4.7l-1-1.3C13.3 12.1 10.9 14 8 14c-3.3 0-6-2.7-6-6s2.7-6 6-6c1.7 0 3.2.7 4.3 1.9l.3.5z"/></svg>
+                        </button>
+                    </div>
                 </div>
-                <div class="section-title"><span>❯ WORKSPACE</span></div>
                 <div class="file-list" id="file-list"></div>
             </div>
 
@@ -558,7 +574,7 @@
             emmet: true, autocomplete: true, expandTab: true, expandEnter: true, indent: true, diagnostics: true 
         };
 
-        let workspaceDirHandle = null; // Storing Handle for Native File API
+        let workspaceDirHandle = null; 
 
         function initSettingsUI() {
             document.getElementById('settingEmmet').checked = editorSettings.emmet;
@@ -585,26 +601,22 @@
         /* ==========================================================
            2. FILE SYSTEM API INTEGRATION
            ========================================================== */
-                async function initFileSystem() {
-            // Check if the browser actually supports the File System Access API
+        async function initFileSystem() {
             if (!('showDirectoryPicker' in window)) {
                 alert("Native folder access is not supported on this browser/device. Falling back to internal storage.");
                 document.getElementById('workspaceModal').style.display = 'none';
-                return; // Stop execution here and continue with local storage
+                return;
             }
-
             try {
                 workspaceDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
                 document.getElementById('workspaceModal').style.display = 'none';
                 await loadFilesFromNativeSystem();
             } catch (error) {
                 console.error("Folder access cancelled or failed: ", error);
-                // Adding an alert so the user knows why it didn't open
                 alert("Folder access cancelled or blocked. Using internal storage instead.");
                 document.getElementById('workspaceModal').style.display = 'none';
             }
         }
-
 
         async function loadFilesFromNativeSystem() {
             filesList = [];
@@ -613,15 +625,14 @@
                 if (entry.kind === 'file') {
                     const file = await entry.getFile();
                     const content = await file.text();
-                    filesList.push({ name: entry.name, content: content });
+                    filesList.push({ name: entry.name, content: content, isFolder: false });
                 }
             }
             if (filesList.length > 0) {
                 openTabs.push(filesList[0].name);
                 switchFile(filesList[0].name);
             } else {
-                // If folder is empty, create an initial index.html
-                await createNewFile("html", "index.html");
+                await createNewFileDirect("index.html");
             }
             renderTabs();
             renderFileList();
@@ -634,41 +645,404 @@
 
         const SELF_CLOSING_TAGS = new Set(["img", "input", "br", "hr", "meta", "link", "area", "base", "col", "embed", "param", "source", "track", "wbr"]);
 
-        // (Keeping remaining Emmet functionality identical)
-        const INPUT_SHORTCUTS = { "input:text": 'input[type="text"][name=""][id=""]', /* ... */ "input": 'input[type="text"][name=""][id=""]' };
-        const VALID_HTML_TAGS = new Set(["a", "abbr", "address", "area", "article", /* ... truncated for brevity, assuming standard list ... */ "video", "wbr"]);
+        const INPUT_SHORTCUTS = {
+            "input:text": 'input[type="text"][name=""][id=""]',
+            "input:email": 'input[type="email"][name=""][id=""]',
+            "input:password": 'input[type="password"][name=""][id=""]',
+            "input:number": 'input[type="number"][name=""][id=""]',
+            "input:date": 'input[type="date"][name=""][id=""]',
+            "input:file": 'input[type="file"][name=""][id=""]',
+            "input:checkbox": 'input[type="checkbox"][name=""][id=""]',
+            "input:radio": 'input[type="radio"][name=""][id=""]',
+            "input:submit": 'input[type="submit"][value=""]',
+            "input:button": 'input[type="button"][value=""]',
+            "input:reset": 'input[type="reset"][value=""]',
+            "input:search": 'input[type="search"][name=""][id=""]',
+            "input:tel": 'input[type="tel"][name=""][id=""]',
+            "input:url": 'input[type="url"][name=""][id=""]',
+            "input:color": 'input[type="color"][name=""][id=""]',
+            "input:range": 'input[type="range"][name=""][id=""]',
+            "input": 'input[type="text"][name=""][id=""]'
+        };
+
+        const VALID_HTML_TAGS = new Set(["a", "abbr", "address", "area", "article", "aside", "audio", "b", "base", "bdi", "bdo", "blockquote", "body", "br", "button", "canvas", "caption", "cite", "code", "col", "colgroup", "data", "datalist", "dd", "del", "details", "dfn", "dialog", "div", "dl", "dt", "em", "embed", "fieldset", "figcaption", "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr", "html", "i", "iframe", "img", "input", "ins", "kbd", "label", "legend", "li", "link", "main", "map", "mark", "meta", "meter", "nav", "noscript", "object", "ol", "optgroup", "option", "output", "p", "param", "picture", "pre", "progress", "q", "rp", "rt", "ruby", "s", "samp", "script", "section", "select", "small", "source", "span", "strong", "style", "sub", "summary", "sup", "svg", "table", "tbody", "td", "template", "textarea", "tfoot", "th", "thead", "time", "title", "tr", "track", "u", "ul", "var", "video", "wbr"]);
 
         function parseEmmet(abbr) {
-            // Minimal emmet parser logic kept from original
             if (!abbr || typeof abbr !== 'string') return null;
             abbr = abbr.trim();
             if (INPUT_SHORTCUTS[abbr]) abbr = INPUT_SHORTCUTS[abbr];
+
             try {
                 let pos = 0, steps = 0, maxSteps = 2000;
+
                 function skipWhitespace() { while (pos < abbr.length && /\s/.test(abbr[pos])) pos++; }
-                // ... (Original parsing logic truncated for length, assuming all helper methods exist as in original) ...
-                // Note: The rest of parsing logic would be here as per original file.
-                return null; // Placeholder for full implementation if I was rewriting entire block. Assumed kept unchanged.
+
+                function parseExpression(isChild = false) {
+                    let nodes = [];
+                    while (pos < abbr.length) {
+                        if (++steps > maxSteps) return null;
+                        skipWhitespace();
+                        if (pos >= abbr.length) break;
+
+                        let char = abbr[pos];
+                        if (char === ')') { if (isChild) break; pos++; }
+
+                        let startPos = pos;
+                        let node = parseNode();
+                        if (node) nodes.push(node);
+
+                        skipWhitespace();
+                        if (pos < abbr.length) {
+                            let nextChar = abbr[pos];
+                            if (nextChar === '>') {
+                                pos++; skipWhitespace();
+                                let childNodes = parseExpression(true);
+                                if (nodes.length > 0) nodes[nodes.length - 1].children = childNodes;
+                            } else if (nextChar === '+') { pos++; }
+                            else if (nextChar === ')') { if (isChild) break; }
+                            else { if (pos === startPos) pos++; }
+                        }
+                        if (pos === startPos) pos++;
+                    }
+                    return nodes;
+                }
+
+                function parseNode() {
+                    skipWhitespace();
+                    if (pos >= abbr.length) return null;
+                    let startPos = pos;
+                    let char = abbr[pos];
+
+                    if (char === '(') {
+                        pos++;
+                        let groupNodes = parseExpression(false);
+                        if (pos < abbr.length && abbr[pos] === ')') pos++;
+                        let count = 1;
+                        if (pos < abbr.length && abbr[pos] === '*') {
+                            pos++; let numStr = '';
+                            while (pos < abbr.length && /[0-9]/.test(abbr[pos])) { numStr += abbr[pos++]; }
+                            if (numStr) count = parseInt(numStr, 10);
+                        }
+                        return { type: 'group', nodes: groupNodes, count: count };
+                    }
+
+                    let tagName = 'div';
+                    if (/^[a-zA-Z0-9\-]+/.test(abbr.slice(pos))) {
+                        let tagMatch = abbr.slice(pos).match(/^[a-zA-Z0-9\-]+/);
+                        if (tagMatch) { tagName = tagMatch[0]; pos += tagName.length; }
+                    }
+
+                    let classes = [], id = null, attributes = [], text = null, count = 1;
+
+                    while (pos < abbr.length) {
+                        if (++steps > maxSteps) return null;
+                        let c = abbr[pos], loopPos = pos;
+
+                        if (c === '.') {
+                            pos++; let clsMatch = abbr.slice(pos).match(/^[a-zA-Z0-9\-_$]+/);
+                            if (clsMatch) { classes.push(clsMatch[0]); pos += clsMatch[0].length; }
+                        } else if (c === '#') {
+                            pos++; let idMatch = abbr.slice(pos).match(/^[a-zA-Z0-9\-_$]+/);
+                            if (idMatch) { id = idMatch[0]; pos += idMatch[0].length; }
+                        } else if (c === '[') {
+                            pos++; let attrContent = '', depth = 1;
+                            while (pos < abbr.length && depth > 0) {
+                                let b = abbr[pos++];
+                                if (b === '[') depth++; if (b === ']') depth--;
+                                if (depth > 0) attrContent += b;
+                            }
+                            let attrRegex = /([a-zA-Z0-9\-_$]+)(?:=(?:["']([^"']*)["']|([^\s\]]+)))?/g, match;
+                            while ((match = attrRegex.exec(attrContent)) !== null) {
+                                let attrName = match[1];
+                                let attrVal = match[2] !== undefined ? match[2] : (match[3] !== undefined ? match[3] : true);
+                                attributes.push({ name: attrName, value: attrVal });
+                            }
+                        } else if (c === '{') {
+                            pos++; let textContent = '', depth = 1;
+                            while (pos < abbr.length && depth > 0) {
+                                let b = abbr[pos++];
+                                if (b === '{') depth++; if (b === '}') depth--;
+                                if (depth > 0) textContent += b;
+                            }
+                            text = textContent;
+                        } else if (c === '*') {
+                            pos++; let numStr = '';
+                            while (pos < abbr.length && /[0-9]/.test(abbr[pos])) { numStr += abbr[pos++]; }
+                            if (numStr) count = parseInt(numStr, 10);
+                        } else { break; }
+
+                        if (pos === loopPos) { pos++; break; }
+                    }
+
+                    if (pos === startPos) { pos++; return null; }
+
+                    return { type: 'element', tag: tagName, classes: classes, id: id, attributes: attributes, text: text, count: count, children: [] };
+                }
+
+                let res = parseExpression(false);
+                return (res && res.length > 0) ? res : null;
             } catch (e) { return null; }
         }
+
+        function replaceNumbering(str, index) {
+            if (!str || typeof str !== 'string') return str;
+            return str.replace(/\$(\$+)?/g, (match) => String(index).padStart(match.length, '0'));
+        }
+
+        function hasExplicitDollar(node) {
+            if (!node) return false;
+            if (node.tag && node.tag.includes('$')) return true;
+            if (node.id && node.id.includes('$')) return true;
+            if (node.classes && node.classes.some(c => c.includes('$'))) return true;
+            if (node.text && node.text.includes('$')) return true;
+            if (node.attributes && node.attributes.some(a => (a.name && a.name.includes('$')) || (typeof a.value === 'string' && a.value.includes('$')))) return true;
+            return false;
+        }
+
+        function generateCodeFromAST(nodes, depth = 0) {
+            let html = '';
+            if (!nodes || !Array.isArray(nodes)) return '';
+            let indentStr = editorSettings.indent ? '    '.repeat(depth) : '';
+
+            for (let node of nodes) {
+                if (!node) continue;
+                if (node.type === 'group') {
+                    for (let g = 0; g < node.count; g++) html += generateCodeFromAST(node.nodes, depth);
+                } else if (node.type === 'element') {
+                    let hasDollar = hasExplicitDollar(node);
+                    for (let i = 0; i < node.count; i++) {
+                        let currentIndex = i + 1;
+                        let tag = replaceNumbering(node.tag, currentIndex);
+                        let processedClasses = node.classes.map(cls => replaceNumbering(cls, currentIndex));
+
+                        if (node.count > 1 && !hasDollar) processedClasses.push(`item${currentIndex}`);
+
+                        let processedId = node.id ? replaceNumbering(node.id, currentIndex) : null;
+                        let processedText = node.text !== null ? replaceNumbering(node.text, currentIndex) : null;
+
+                        let processedAttrs = node.attributes.map(attr => ({
+                            name: replaceNumbering(attr.name, currentIndex),
+                            value: typeof attr.value === 'string' ? replaceNumbering(attr.value, currentIndex) : attr.value
+                        }));
+
+                        if (tag === 'img' && !processedAttrs.some(a => a.name === 'alt')) processedAttrs.push({ name: 'alt', value: '' });
+                        if (tag === 'a' && !processedAttrs.some(a => a.name === 'href')) processedAttrs.unshift({ name: 'href', value: '' });
+
+                        let attrString = '';
+                        if (processedId) attrString += ` id="${processedId}"`;
+                        if (processedClasses.length > 0) attrString += ` class="${processedClasses.join(' ')}"`;
+                        for (let attr of processedAttrs) {
+                            if (attr.value === true) attrString += ` ${attr.name}`;
+                            else attrString += ` ${attr.name}="${attr.value}"`;
+                        }
+
+                        let isSelfClosing = SELF_CLOSING_TAGS.has(tag.toLowerCase());
+                        if (isSelfClosing) {
+                            html += `${indentStr}<${tag}${attrString}>\n`;
+                        } else {
+                            if (node.children && node.children.length > 0) {
+                                html += `${indentStr}<${tag}${attrString}>`;
+                                if (processedText !== null) html += processedText;
+                                html += `\n`;
+                                html += generateCodeFromAST(node.children, depth + 1);
+                                html += `${indentStr}</${tag}>\n`;
+                            } else if (processedText !== null) {
+                                html += `${indentStr}<${tag}${attrString}>${processedText}</${tag}>\n`;
+                            } else {
+                                html += `${indentStr}<${tag}${attrString}></${tag}>\n`;
+                            }
+                        }
+                    }
+                }
+            }
+            return html;
+        }
+
         function expandEmmetHTML(abbr) {
             if (!abbr) return null;
             if (abbr === '!' || abbr === 'html:5') return BOILERPLATE_HTML;
-            return null; // Placeholder
+            let ast = parseEmmet(abbr);
+            if (!ast || ast.length === 0) return null;
+            return generateCodeFromAST(ast).trim();
         }
+
         function expandEmmetCSS(abbr) {
-            return null; // Placeholder
+            if (!abbr) return null;
+            abbr = abbr.trim();
+            const cssMap = {
+                "d:f": "display: flex;", "df": "display: flex;", "d:g": "display: grid;", "dg": "display: grid;",
+                "d:b": "display: block;", "db": "display: block;", "d:ib": "display: inline-block;", "dib": "display: inline-block;",
+                "d:n": "display: none;", "dn": "display: none;", "pos:r": "position: relative;", "posr": "position: relative;",
+                "pos:a": "position: absolute;", "posa": "position: absolute;", "pos:f": "position: fixed;", "posf": "position: fixed;",
+                "pos:s": "position: sticky;", "poss": "position: sticky;", "tac": "text-align: center;", "tal": "text-align: left;",
+                "tar": "text-align: right;", "jc:c": "justify-content: center;", "jc:sb": "justify-content: space-between;",
+                "ai:c": "align-items: center;", "bxsh": "box-shadow: 0 2px 10px rgba(0,0,0,0.1);"
+            };
+            if (cssMap[abbr]) return cssMap[abbr];
+
+            let colMatch = abbr.match(/^(c|bgc)#([0-9a-fA-F]{3,6})$/);
+            if (colMatch) return `${colMatch[1] === 'c' ? 'color' : 'background-color'}: #${colMatch[2]};`;
+
+            let numMatch = abbr.match(/^([a-z]+)(\d+)([a-zA-Z%]*)$/);
+            if (numMatch) {
+                let prefix = numMatch[1]; let val = numMatch[2]; let unit = numMatch[3] || (['fw','op','z'].includes(prefix) ? '' : 'px');
+                const props = { 'm': 'margin', 'mt': 'margin-top', 'mr': 'margin-right', 'mb': 'margin-bottom', 'ml': 'margin-left', 'p': 'padding', 'pt': 'padding-top', 'pr': 'padding-right', 'pb': 'padding-bottom', 'pl': 'padding-left', 'w': 'width', 'h': 'height', 'fz': 'font-size', 'fw': 'font-weight', 'lh': 'line-height', 'ls': 'letter-spacing', 'br': 'border-radius', 'op': 'opacity', 'z': 'z-index', 'g': 'gap' };
+                if (props[prefix]) return `${props[prefix]}: ${val}${unit};`;
+            }
+            return null;
         }
 
         /* ==========================================================
-           4. INTELLISENSE COMPLETER & UI BADGES (Kept Unchanged)
+           4. INTELLISENSE COMPLETER & UI BADGES
            ========================================================== */
-        const HTML_ATTRIBUTES = { default: ["class", "id", "style", "title", "lang", "dir", "tabindex", "data-", "aria-"] };
-        const JS_AUTOCOMPLETE = { "document": ["getElementById()", "querySelector()"] };
-        const CSS_PROPERTIES = ["background", "border", "color"];
+        const HTML_ATTRIBUTES = {
+            default: ["class", "id", "style", "title", "lang", "dir", "tabindex", "data-", "aria-"],
+            input: ["type", "name", "value", "placeholder", "required", "disabled", "readonly", "checked", "maxlength", "min", "max", "step", "autocomplete"],
+            a: ["href", "target", "rel", "download", "title"],
+            img: ["src", "alt", "width", "height", "loading", "srcset"],
+            form: ["action", "method", "target", "enctype", "novalidate"],
+            button: ["type", "disabled", "name", "value", "form"]
+        };
+
+        const JS_AUTOCOMPLETE = {
+            "document": ["getElementById()", "querySelector()", "querySelectorAll()", "createElement()", "addEventListener()", "getElementsByClassName()", "body", "head", "title"],
+            "console": ["log()", "error()", "warn()", "info()", "clear()", "table()"],
+            "window": ["alert()", "confirm()", "prompt()", "setTimeout()", "setInterval()", "clearTimeout()"],
+            "Array": ["map()", "filter()", "reduce()", "forEach()", "find()", "findIndex()", "includes()", "push()", "pop()", "slice()", "splice()"],
+            "String": ["toUpperCase()", "toLowerCase()", "trim()", "includes()", "startsWith()", "endsWith()", "replace()", "split()"]
+        };
+
+        const CSS_PROPERTIES = ["background", "background-color", "border", "border-radius", "box-shadow", "color", "cursor", "display", "flex", "flex-direction", "font-family", "font-size", "font-weight", "gap", "height", "justify-content", "align-items", "line-height", "margin", "opacity", "overflow", "padding", "position", "top", "right", "bottom", "left", "text-align", "transform", "transition", "width", "z-index"];
+
+        function createHintItem(text, category, hintFn) {
+            return {
+                text: text,
+                render: function(elt) {
+                    elt.innerHTML = `<div class="hint-item-left"><span class="hint-badge badge-${category.toLowerCase()}">${category}</span><span style="color:#d4d4d4;">${text}</span></div>`;
+                },
+                hint: hintFn
+            };
+        }
 
         function getSmartHints(cm) {
-            // Original hints logic
+            if (!editorSettings.autocomplete && !editorSettings.emmet) return null;
+            let cursor = cm.getCursor();
+            let line = cm.getLine(cursor.line);
+            let lineTillCursor = line.slice(0, cursor.ch);
+            let list = [];
+
+            let mode = cm.getModeAt(cursor).name;
+            if (currentFileName.endsWith('.css')) mode = 'css';
+            if (currentFileName.endsWith('.js')) mode = 'javascript';
+
+            if (mode === 'htmlmixed' || mode === 'xml') {
+                let attrMatch = lineTillCursor.match(/<([a-zA-Z0-9\-]+)[^>]*\s+([a-zA-Z0-9\-]*)$/);
+                if (attrMatch) {
+                    let tag = attrMatch[1].toLowerCase();
+                    let query = attrMatch[2].toLowerCase();
+                    let attrs = [...HTML_ATTRIBUTES.default, ...(HTML_ATTRIBUTES[tag] || [])];
+                    attrs.forEach(attr => {
+                        if (attr.startsWith(query)) {
+                            list.push(createHintItem(attr, "Attribute", (cm) => {
+                                let from = CodeMirror.Pos(cursor.line, cursor.ch - query.length);
+                                cm.replaceRange(attr + '=""', from, cursor);
+                                cm.setCursor({ line: cursor.line, ch: from.ch + attr.length + 2 });
+                            }));
+                        }
+                    });
+                    if (list.length > 0) return { list: list, from: CodeMirror.Pos(cursor.line, cursor.ch - query.length), to: cursor };
+                }
+
+                let wordMatch = lineTillCursor.match(/([a-zA-Z0-9\-_#.+*$:>{}()\[\]=!]+)$/);
+                if (wordMatch) {
+                    let abbr = wordMatch[1];
+                    let from = CodeMirror.Pos(cursor.line, cursor.ch - abbr.length);
+
+                    if ((abbr === '!' || abbr === 'html:5') && editorSettings.emmet) {
+                        list.push(createHintItem("! (HTML5 Boilerplate)", "Emmet", (cm) => {
+                            cm.replaceRange(BOILERPLATE_HTML, from, cursor);
+                            cm.setCursor({ line: from.line + 8, ch: 4 });
+                        }));
+                        return { list: list, from: from, to: cursor };
+                    }
+
+                    if (editorSettings.emmet) {
+                        let expanded = expandEmmetHTML(abbr);
+                        if (expanded) {
+                            list.push(createHintItem(abbr, "Emmet", (cm) => {
+                                cm.replaceRange(expanded, from, cursor);
+                                let idx = expanded.indexOf('=""');
+                                if (idx !== -1) cm.setCursor(cm.posFromIndex(cm.indexFromPos(from) + idx + 2));
+                            }));
+                        }
+                    }
+
+                    VALID_HTML_TAGS.forEach(tag => {
+                        if (tag.startsWith(abbr.toLowerCase())) {
+                            list.push(createHintItem(tag, "HTML", (cm) => {
+                                let snippet = SELF_CLOSING_TAGS.has(tag) ? `<${tag}>` : `<${tag}></${tag}>`;
+                                cm.replaceRange(snippet, from, cursor);
+                                cm.setCursor({ line: from.line, ch: from.ch + tag.length + 2 });
+                            }));
+                        }
+                    });
+
+                    if (list.length > 0) return { list: list, from: from, to: cursor };
+                }
+            }
+
+            if (mode === 'css') {
+                let wordMatch = lineTillCursor.match(/([a-zA-Z0-9\-_:#]+)$/);
+                if (wordMatch) {
+                    let query = wordMatch[1];
+                    let from = CodeMirror.Pos(cursor.line, cursor.ch - query.length);
+                    let expanded = expandEmmetCSS(query);
+                    if (expanded) {
+                        list.push(createHintItem(query + " -> " + expanded, "Emmet", (cm) => {
+                            cm.replaceRange(expanded, from, cursor);
+                        }));
+                    }
+                    CSS_PROPERTIES.forEach(prop => {
+                        if (prop.startsWith(query.toLowerCase())) {
+                            list.push(createHintItem(prop, "CSS", (cm) => {
+                                cm.replaceRange(prop + ': ;', from, cursor);
+                                cm.setCursor({ line: cursor.line, ch: from.ch + prop.length + 2 });
+                            }));
+                        }
+                    });
+                    if (list.length > 0) return { list: list, from: from, to: cursor };
+                }
+            }
+
+            if (mode === 'javascript') {
+                let wordMatch = lineTillCursor.match(/([a-zA-Z0-9_.]+)$/);
+                if (wordMatch) {
+                    let query = wordMatch[1];
+                    let from = CodeMirror.Pos(cursor.line, cursor.ch - query.length);
+                    if (query.includes('.')) {
+                        let [obj, method] = query.split('.');
+                        if (JS_AUTOCOMPLETE[obj]) {
+                            JS_AUTOCOMPLETE[obj].forEach(m => {
+                                if (m.startsWith(method)) {
+                                    list.push(createHintItem(`${obj}.${m}`, "JS", (cm) => {
+                                        cm.replaceRange(`${obj}.${m}`, from, cursor);
+                                    }));
+                                }
+                            });
+                        }
+                    } else {
+                        Object.keys(JS_AUTOCOMPLETE).forEach(key => {
+                            if (key.startsWith(query)) {
+                                list.push(createHintItem(key, "JS", (cm) => {
+                                    cm.replaceRange(key, from, cursor);
+                                }));
+                            }
+                        });
+                    }
+                    if (list.length > 0) return { list: list, from: from, to: cursor };
+                }
+            }
+
             return null;
         }
 
@@ -678,7 +1052,46 @@
         let editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
             mode: "htmlmixed", theme: "custom-dark", lineNumbers: true, indentUnit: 4, matchBrackets: true, autoCloseTags: true, 
             autoCloseBrackets: true, viewportMargin: Infinity, inputStyle: "contenteditable",
-            extraKeys: { /* Tab/Enter rules kept */ }
+            extraKeys: {
+                "Ctrl-Space": "autocomplete",
+                "Tab": function(cm) {
+                    if (cm.state.completionActive && cm.state.completionActive.widget) { cm.state.completionActive.widget.pick(); return; }
+                    let cursor = cm.getCursor();
+                    let line = cm.getLine(cursor.line);
+                    let beforeCursor = line.slice(0, cursor.ch).trim();
+                    
+                    if (beforeCursor === '!' || beforeCursor === 'html:5') {
+                        cm.replaceRange(BOILERPLATE_HTML, {line: cursor.line, ch: cursor.ch - beforeCursor.length}, cursor);
+                        cm.setCursor({line: cursor.line + 8, ch: 4});
+                        return;
+                    }
+
+                    let match = line.slice(0, cursor.ch).match(/([a-zA-Z0-9\-_#.+*$:>{}()\[\]=]+)$/);
+                    if (match && editorSettings.emmet && editorSettings.expandTab) {
+                        let expanded = expandEmmetHTML(match[1]) || expandEmmetCSS(match[1]);
+                        if (expanded) {
+                            cm.replaceRange(expanded, { line: cursor.line, ch: cursor.ch - match[1].length }, cursor);
+                            return;
+                        }
+                    }
+                    cm.replaceSelection("    ", "end");
+                },
+                "Enter": function(cm) {
+                    if (cm.state.completionActive && cm.state.completionActive.widget && editorSettings.expandEnter) {
+                        cm.state.completionActive.widget.pick(); return;
+                    }
+                    let cursor = cm.getCursor();
+                    let line = cm.getLine(cursor.line);
+                    let beforeCursor = line.slice(0, cursor.ch).trim();
+                    
+                    if (beforeCursor === '!' || beforeCursor === 'html:5') {
+                        cm.replaceRange(BOILERPLATE_HTML, {line: cursor.line, ch: cursor.ch - beforeCursor.length}, cursor);
+                        cm.setCursor({line: cursor.line + 8, ch: 4});
+                        return;
+                    }
+                    return CodeMirror.Pass;
+                }
+            }
         });
 
         function updateWatermark() {
@@ -686,18 +1099,59 @@
             watermark.style.opacity = editor.getValue().trim() === "" ? "0.12" : "0";
         }
         editor.on("change", updateWatermark);
+        editor.on("change", function(cm) { updateColorSwatches(cm); if(editorSettings.diagnostics) runDiagnostics(); });
+
+        let autoHintTimer = null;
+        editor.on("change", function(cm, change) {
+            if (change.origin === "complete" || change.origin === "setValue" || change.origin === "undo") return;
+            clearTimeout(autoHintTimer);
+            autoHintTimer = setTimeout(() => {
+                if (!cm.state.completionActive && (editorSettings.autocomplete || editorSettings.emmet)) {
+                    cm.showHint({ hint: getSmartHints, completeSingle: false, alignWithWord: true });
+                }
+            }, 100);
+        });
 
         /* ==========================================================
            6. COLOUR PICKER & VAPID ADD INTEGRATION
            ========================================================== */
         let activeColorRange = null;
 
-        function updateColorSwatches(cm) { /* ... */ }
-        function openColorPickerModal(color = "#007acc") { /* ... */ }
+        function updateColorSwatches(cm) {
+            cm.getAllMarks().forEach(m => { if(m.isColorSwatch) m.clear(); });
+            let regex = /#([0-9a-fA-F]{3,6})\b|\b(rgb|hsl)a?\([^)]+\)/gi;
+            for(let i=0; i<cm.lineCount(); i++) {
+                let line = cm.getLine(i); let match;
+                while((match = regex.exec(line)) !== null) {
+                    let color = match[0];
+                    let start = {line: i, ch: match.index}; let end = {line: i, ch: match.index + color.length};
+                    let box = document.createElement("span");
+                    box.style.cssText = `display:inline-block;width:12px;height:12px;background-color:${color};border:1px solid #777;margin-right:4px;cursor:pointer;vertical-align:middle;border-radius:3px;`;
+                    box.onclick = () => { activeColorRange = {start, end}; openColorPickerModal(color); };
+                    let mark = cm.setBookmark(start, {widget: box}); mark.isColorSwatch = true;
+                }
+            }
+        }
+
+        function openColorPickerModal(color = "#007acc") {
+            document.getElementById('modalNativeColor').value = color.startsWith('#') ? color : '#007acc';
+            document.getElementById('modalHexInput').value = color;
+            document.getElementById('modalColorPreview').style.backgroundColor = color;
+            document.getElementById('colorPickerModal').style.display = 'flex';
+        }
         function closeColorPickerModal() { document.getElementById('colorPickerModal').style.display = 'none'; }
-        function updateColorFromPicker(val) { /* ... */ }
-        function updateColorFromHex(val) { /* ... */ }
-        function applyColorFromModal() { /* ... */ }
+        function updateColorFromPicker(val) { document.getElementById('modalHexInput').value = val; document.getElementById('modalColorPreview').style.backgroundColor = val; }
+        function updateColorFromHex(val) { document.getElementById('modalColorPreview').style.backgroundColor = val; }
+
+        function applyColorFromModal() {
+            let color = document.getElementById('modalHexInput').value;
+            if (activeColorRange) {
+                editor.replaceRange(color, activeColorRange.start, activeColorRange.end);
+            } else {
+                editor.replaceSelection(color);
+            }
+            closeColorPickerModal();
+        }
 
         function openVapidModal() {
             if (!localStorage.getItem('as_vapid_public')) generateNewVapidKeys();
@@ -706,6 +1160,7 @@
             document.getElementById('vapidModal').style.display = 'flex';
         }
         function closeVapidModal() { document.getElementById('vapidModal').style.display = 'none'; }
+
         function generateNewVapidKeys() {
             let pub = "B" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
             let priv = Math.random().toString(36).substring(2, 15);
@@ -714,6 +1169,7 @@
             document.getElementById('vapidPublicKey').value = pub;
             document.getElementById('vapidPrivateKey').value = priv;
         }
+
         function injectVapidSnippet() {
             let snippet = `\n<!-- Web Push VAPID Registration -->\n<script>\n  const VAPID_PUBLIC_KEY = "${localStorage.getItem('as_vapid_public')}";\n  if ('serviceWorker' in navigator) {\n    navigator.serviceWorker.register('/sw.js');\n  }\n<\/script>\n`;
             editor.replaceRange(snippet, {line: editor.lineCount(), ch: 0});
@@ -721,12 +1177,12 @@
         }
 
         /* ==========================================================
-           7. MULTI-TAB & FILE EXPLORER MANAGEMENT (UPDATED FOR FILESYSTEM)
+           7. MULTI-TAB & FILE EXPLORER MANAGEMENT (UPDATED FOR FILESYSTEM & SORTING)
            ========================================================== */
         let defaultFiles = [
-            { name: "index.html", content: "<!DOCTYPE html>\n<html>\n<head>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <h1>Hello World</h1>\n  <script src=\"script.js\"><\/script>\n</body>\n</html>" },
-            { name: "style.css", content: "body {\n  background-color: #1e1e1e;\n  color: #fff;\n  font-family: sans-serif;\n}" },
-            { name: "script.js", content: "console.log('App loaded');" }
+            { name: "index.html", content: "<!DOCTYPE html>\n<html>\n<head>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <h1>Hello World</h1>\n  <script src=\"script.js\"><\/script>\n</body>\n</html>", isFolder: false },
+            { name: "style.css", content: "body {\n  background-color: #1e1e1e;\n  color: #fff;\n  font-family: sans-serif;\n}", isFolder: false },
+            { name: "script.js", content: "console.log('App loaded');", isFolder: false }
         ];
 
         let filesList = JSON.parse(localStorage.getItem('as_vscode_files')) || defaultFiles;
@@ -737,7 +1193,6 @@
         async function saveToStorage() {
             await saveCurrentFileContent();
             if (!workspaceDirHandle) {
-                // Only save to localstorage if native api is not active
                 localStorage.setItem('as_vscode_files', JSON.stringify(filesList));
                 localStorage.setItem('as_vscode_tabs', JSON.stringify(openTabs));
             }
@@ -747,10 +1202,9 @@
         }
 
         async function saveCurrentFileContent() {
-            let active = filesList.find(f => f.name === currentFileName);
+            let active = filesList.find(f => f.name === currentFileName && !f.isFolder);
             if (active) {
                 active.content = editor.getValue();
-                // Write to native file system if handle exists
                 if (workspaceDirHandle) {
                     try {
                         const fileHandle = await workspaceDirHandle.getFileHandle(active.name, { create: true });
@@ -794,7 +1248,7 @@
             await saveCurrentFileContent();
             if (!openTabs.includes(filename)) openTabs.push(filename);
             currentFileName = filename;
-            let activeFile = filesList.find(f => f.name === currentFileName);
+            let activeFile = filesList.find(f => f.name === currentFileName && !f.isFolder);
             if (activeFile) {
                 editor.setOption("mode", getModeForFile(filename));
                 editor.setValue(activeFile.content);
@@ -803,6 +1257,7 @@
             renderTabs();
             renderFileList();
             updateWatermark();
+            updateColorSwatches(editor);
         }
 
         function closeTab(filename) {
@@ -818,26 +1273,43 @@
         function renderFileList() {
             let listContainer = document.getElementById('file-list');
             listContainer.innerHTML = '';
-            filesList.forEach(file => {
+
+            let sortedFiles = [...filesList].sort((a, b) => {
+                let aIsFolder = a.isFolder || false;
+                let bIsFolder = b.isFolder || false;
+                if (aIsFolder && !bIsFolder) return -1;
+                if (!aIsFolder && bIsFolder) return 1;
+                return a.name.localeCompare(b.name);
+            });
+
+            sortedFiles.forEach(file => {
                 let item = document.createElement('div');
-                item.className = `file-item ${file.name === currentFileName ? 'active' : ''}`;
-                item.onclick = () => switchFile(file.name);
+                item.className = `file-item ${file.isFolder ? 'folder-item' : ''} ${file.name === currentFileName ? 'active' : ''}`;
+                
+                item.onclick = () => {
+                    if(!file.isFolder) {
+                        switchFile(file.name);
+                        document.getElementById('appContainer').classList.remove('show-sidebar');
+                    }
+                };
 
                 let info = document.createElement('div');
                 info.className = 'file-info';
-                let icon = document.createElement('img');
-                icon.className = 'file-item-icon';
-                icon.src = getIconForFile(file.name);
-                let name = document.createElement('span');
-                name.innerText = file.name;
-                info.appendChild(icon); info.appendChild(name);
+                
+                if (file.isFolder) {
+                    info.innerHTML = `<svg class="file-item-icon" style="color:#dcb67a" viewBox="0 0 16 16" fill="currentColor"><path d="M14 4H7.7l-1.4-1.5-.4-.5H2.5v11h11.5v-9zM3 13V3h2.6l1.4 1.5.4.5H13v8H3z"/></svg> <span>${file.name}</span>`;
+                } else {
+                    let iconSrc = getIconForFile(file.name);
+                    info.innerHTML = `<img class="file-item-icon" src="${iconSrc}"> <span>${file.name}</span>`;
+                }
 
                 let moreBtn = document.createElement('button');
                 moreBtn.className = 'file-more-btn';
                 moreBtn.innerText = '⋮';
                 moreBtn.onclick = (e) => { e.stopPropagation(); targetMenuFile = file.name; openFileMenu(e); };
 
-                item.appendChild(info); item.appendChild(moreBtn);
+                item.appendChild(info); 
+                item.appendChild(moreBtn);
                 listContainer.appendChild(item);
             });
         }
@@ -856,13 +1328,69 @@
             }
         });
 
-        async function createNewFile(ext, promptOverride = null) {
-            let name = promptOverride || prompt("Enter file name:", `script.${ext}`);
-            if (!name) return;
-            if (filesList.some(f => f.name === name)) { alert("File exists!"); return; }
+        // Inline Input Logic for New Files/Folders
+        let isCreatingFile = false;
+        function showInlineInput(type) {
+            if(isCreatingFile) return;
+            isCreatingFile = true;
+
+            const listContainer = document.getElementById('file-list');
+            const wrapper = document.createElement('div');
+            wrapper.className = 'file-item inline-input-wrapper';
             
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'inline-file-input';
+            input.placeholder = type === 'file' ? 'e.g. style.css' : 'folder_name';
+            
+            wrapper.appendChild(input);
+            listContainer.insertBefore(wrapper, listContainer.firstChild); 
+            input.focus();
+
+            let hasSubmitted = false;
+            
+            const submitVal = async () => {
+                if(hasSubmitted) return;
+                hasSubmitted = true;
+                isCreatingFile = false;
+                let val = input.value.trim();
+                
+                if (!val) { wrapper.remove(); return; }
+
+                if (filesList.some(f => f.name === val)) { 
+                    alert("Name already exists!"); 
+                    wrapper.remove(); 
+                    return; 
+                }
+
+                if (type === 'file') {
+                    if (!val.endsWith('.html') && !val.endsWith('.css') && !val.endsWith('.js')) {
+                        alert("Only .html, .css, and .js files are supported!");
+                        wrapper.remove();
+                        return;
+                    }
+                    await createNewFileDirect(val);
+                } else {
+                    if (workspaceDirHandle) {
+                        try {
+                            await workspaceDirHandle.getDirectoryHandle(val, { create: true });
+                        } catch(e) { console.error("Error creating folder locally", e); }
+                    }
+                    filesList.push({ name: val, content: "", isFolder: true });
+                    renderFileList();
+                }
+                wrapper.remove();
+            };
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') submitVal();
+                if (e.key === 'Escape') { hasSubmitted = true; isCreatingFile = false; wrapper.remove(); }
+            });
+            input.addEventListener('blur', () => { setTimeout(submitVal, 150); });
+        }
+
+        async function createNewFileDirect(name) {
             let content = "";
-            // Native File API Support
             if (workspaceDirHandle) {
                 try {
                     const fileHandle = await workspaceDirHandle.getFileHandle(name, { create: true });
@@ -871,23 +1399,8 @@
                     await writable.close();
                 } catch(e) { console.error("Error creating file locally", e); }
             }
-
-            filesList.push({ name: name, content: content });
+            filesList.push({ name: name, content: content, isFolder: false });
             switchFile(name);
-        }
-
-        async function createNewFolder() {
-            let name = prompt("Enter folder name:", "components");
-            if (!name) return;
-            // Native File API support (Directories)
-            if (workspaceDirHandle) {
-                try {
-                    await workspaceDirHandle.getDirectoryHandle(name, { create: true });
-                    alert("Folder created in system!");
-                } catch(e) { console.error("Error creating folder locally", e); }
-            }
-            filesList.push({ name: `${name}/index.js`, content: "" });
-            switchFile(`${name}/index.js`);
         }
 
         async function actionRenameFile() {
@@ -895,18 +1408,23 @@
             if (!newName) return;
             let file = filesList.find(f => f.name === targetMenuFile);
             if (file) {
-                // If using Native File API, renaming is complex (requires copy then delete). 
-                // For simplicity, just updating in state if native isn't supported perfectly for rename.
                 file.name = newName;
                 openTabs = openTabs.map(t => t === targetMenuFile ? newName : t);
                 switchFile(newName);
             }
         }
 
-        function actionDuplicateFile() { /*... same as original ...*/ }
+        function actionDuplicateFile() { 
+            let file = filesList.find(f => f.name === targetMenuFile);
+            if (file && !file.isFolder) {
+                let dupName = "copy_" + file.name;
+                filesList.push({ name: dupName, content: file.content, isFolder: false });
+                switchFile(dupName);
+            }
+        }
+        
         function actionDeleteFile() {
             if (filesList.length <= 1) return;
-            // Note: Add Native delete if required `workspaceDirHandle.removeEntry(targetMenuFile)`
             filesList = filesList.filter(f => f.name !== targetMenuFile);
             closeTab(targetMenuFile);
             switchFile(filesList[0].name);
@@ -919,8 +1437,35 @@
         /* ==========================================================
            8. FORMAT DOCUMENT & DIAGNOSTICS
            ========================================================== */
-        function formatDocument() { /*... same as original ...*/ }
-        function runDiagnostics() { /*... same as original ...*/ }
+        function formatDocument() {
+            let mode = getModeForFile(currentFileName);
+            let val = editor.getValue();
+            if (mode === 'htmlmixed') {
+                let formatted = '', indent = 0;
+                val.split(/>\s*</).forEach(node => {
+                    if (node.match(/^\/\w/)) indent--;
+                    formatted += '    '.repeat(Math.max(0, indent)) + '<' + node + '>\n';
+                    if (node.match(/^<?\w[^>]*[^\/]$/) && !SELF_CLOSING_TAGS.has(node.split(' ')[0])) indent++;
+                });
+                editor.setValue(formatted.trim().replace(/^</, '').replace(/>$/, ''));
+            } else {
+                editor.execCommand('selectAll');
+                editor.autoFormatRange(editor.getCursor(true), editor.getCursor(false));
+            }
+        }
+
+        function runDiagnostics() {
+            let val = editor.getValue();
+            let errors = 0, warnings = 0;
+            if (currentFileName.endsWith('.js')) {
+                try { new Function(val); } catch(e) { errors++; }
+            } else if (currentFileName.endsWith('.html')) {
+                let opens = (val.match(/<[a-zA-Z0-9]+/g) || []).length;
+                let closes = (val.match(/<\/[a-zA-Z0-9]+/g) || []).length;
+                if (Math.abs(opens - closes) > 5) warnings++;
+            }
+            document.getElementById('diagnostic-status').innerText = `⊗ ${errors}  ⚠ ${warnings}`;
+        }
 
         /* ==========================================================
            9. ADVANCED HIGHLIGHT SEARCH & REPLACE
@@ -940,24 +1485,106 @@
                 doSearch();
             }
         }
-        function clearSearchHighlights() { /*... same as original ...*/ }
-        function doSearch() { /*... same as original ...*/ }
-        function navigateToMatch(idx) { /*... same as original ...*/ }
-        function findNext() { /*... same as original ...*/ }
-        function findPrev() { /*... same as original ...*/ }
-        function doReplace() { /*... same as original ...*/ }
-        function doReplaceAll() { /*... same as original ...*/ }
+
+        function clearSearchHighlights() {
+            if (searchOverlay) { editor.removeOverlay(searchOverlay); searchOverlay = null; }
+            searchMatches = []; currentMatchIdx = -1;
+            document.getElementById("search-count").innerText = "0/0";
+        }
+
+        function doSearch() {
+            let query = document.getElementById("search-input").value;
+            clearSearchHighlights();
+            if (!query) return;
+
+            searchOverlay = {
+                token: function(stream) {
+                    if (stream.match(query, true, true)) {
+                        return "search-highlight";
+                    }
+                    stream.next();
+                    return null;
+                }
+            };
+            editor.addOverlay(searchOverlay);
+
+            let cursor = editor.getSearchCursor(query);
+            while (cursor.findNext()) {
+                searchMatches.push({ from: cursor.from(), to: cursor.to() });
+            }
+
+            if (searchMatches.length > 0) {
+                currentMatchIdx = 0;
+                navigateToMatch(currentMatchIdx);
+            } else {
+                document.getElementById("search-count").innerText = "0/0";
+            }
+        }
+
+        function navigateToMatch(idx) {
+            if (searchMatches.length === 0) return;
+            let m = searchMatches[idx];
+            editor.setSelection(m.from, m.to);
+            editor.scrollIntoView({ from: m.from, to: m.to }, 100);
+            document.getElementById("search-count").innerText = `${idx + 1}/${searchMatches.length}`;
+        }
+
+        function findNext() {
+            if (searchMatches.length === 0) return;
+            currentMatchIdx = (currentMatchIdx + 1) % searchMatches.length;
+            navigateToMatch(currentMatchIdx);
+        }
+
+        function findPrev() {
+            if (searchMatches.length === 0) return;
+            currentMatchIdx = (currentMatchIdx - 1 + searchMatches.length) % searchMatches.length;
+            navigateToMatch(currentMatchIdx);
+        }
+
+        function doReplace() {
+            let query = document.getElementById("search-input").value;
+            let rep = document.getElementById("replace-input").value;
+            if (editor.getSelection() === query) {
+                editor.replaceSelection(rep);
+                doSearch();
+            } else {
+                findNext();
+            }
+        }
+
+        function doReplaceAll() {
+            let query = document.getElementById("search-input").value;
+            let rep = document.getElementById("replace-input").value;
+            if (!query) return;
+            let cursor = editor.getSearchCursor(query);
+            while (cursor.findNext()) {
+                cursor.replace(rep);
+            }
+            doSearch();
+        }
 
         /* ==========================================================
            10. SHORTCUT TOOLBAR & LIVE PREVIEW
            ========================================================== */
-        editor.on("cursorActivity", (cm) => { /*... same as original ...*/ });
-        function hideSelectionMenu() { /*... same as original ...*/ }
-        function menuSelectAll() { /*... same as original ...*/ }
-        function menuCopy() { /*... same as original ...*/ }
-        function menuCut() { /*... same as original ...*/ }
-        async function menuPaste() { /*... same as original ...*/ }
-        function menuComment() { /*... same as original ...*/ }
+        editor.on("cursorActivity", (cm) => {
+            if (cm.somethingSelected()) {
+                let coords = cm.cursorCoords(true, "window");
+                let menu = document.getElementById("selection-menu");
+                menu.style.display = "flex"; menu.style.top = Math.max(10, coords.top - 50) + "px"; menu.style.left = Math.max(10, coords.left) + "px";
+            } else { document.getElementById("selection-menu").style.display = "none"; }
+        });
+
+        function hideSelectionMenu() { document.getElementById("selection-menu").style.display = "none"; editor.focus(); }
+        function menuSelectAll() { editor.execCommand('selectAll'); hideSelectionMenu(); }
+        function menuCopy() { navigator.clipboard.writeText(editor.getSelection()); hideSelectionMenu(); }
+        function menuCut() { navigator.clipboard.writeText(editor.getSelection()).then(() => editor.replaceSelection('')); hideSelectionMenu(); }
+        async function menuPaste() { let text = await navigator.clipboard.readText(); editor.replaceSelection(text); hideSelectionMenu(); }
+        function menuComment() {
+            let sel = editor.getSelection();
+            let mode = getModeForFile(currentFileName);
+            let comm = mode === 'javascript' ? `// ${sel}` : mode === 'css' ? `/* ${sel} */` : `<!-- ${sel} -->`;
+            editor.replaceSelection(comm); hideSelectionMenu();
+        }
 
         const buttons = document.querySelectorAll('.shortcut-btn');
         buttons.forEach(btn => {
